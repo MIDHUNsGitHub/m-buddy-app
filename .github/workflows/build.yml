@@ -24,9 +24,30 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Autogenerate Clean Base package.json
+        run: |
+          cat << 'EOF' > package.json
+          {
+            "name": "m-buddy-companion-app",
+            "version": "1.0.0",
+            "description": "M-Buddy ESP32 Controller Wrapper",
+            "main": "index.js",
+            "scripts": {
+              "build": "echo 'Static setup done.'"
+            },
+            "dependencies": {
+              "@capacitor/android": "^6.0.0",
+              "@capacitor/cli": "^6.0.0",
+              "@capacitor/core": "^6.0.0",
+              "@capacitor-community/bluetooth-le": "^6.0.0"
+            }
+          }
+          EOF
+          echo "Base package.json cleanly generated in root folder."
+
       - name: Install Project Dependencies
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/bluetooth-le
+          npm install
           npx cap init M-Buddy mochi.buddy.app --web-dir=www
 
       - name: Recreate Clean Native Architecture
