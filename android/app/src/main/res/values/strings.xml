@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">M-Buddy</string>
+    <string name="title_activity_main">M-Buddy</string>
+    <string name="package_name">mochi.buddy.app</string>
+    <string name="custom_url_scheme">mochi.buddy.app</string>
+</resources>
