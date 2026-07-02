@@ -34,25 +34,6 @@ jobs:
           rm -rf android
           npx cap add android
 
-      - name: Inject Android Bluetooth Permissions
-        run: |
-          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-          
-          # Use a block of clean text to safely append hardware flags to the manifest
-          cat << 'EOF' > permissions.xml
-              <uses-permission android:name="android.permission.BLUETOOTH" />
-              <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-              <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-              <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-          </manifest>
-          EOF
-          
-          # Swap out the standard closing tag with the permissions block
-          sed -i 's|</manifest>||g' "$MANIFEST_PATH"
-          cat permissions.xml >> "$MANIFEST_PATH"
-          echo "Hardware permissions embedded safely."
-
       - name: Sync Production Assets & Plugins
         run: npx cap sync android
 
