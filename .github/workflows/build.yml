@@ -24,13 +24,21 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Capacitor CLI Globally
-        run: npm install -g @capacitor/cli
+      - name: Install Capacitor Packages Freshly
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init M-Buddy mochi.buddy.app --web-dir=www
 
-      - name: Sync Web Assets to Android Workspace
+      - name: Remove Local Conflicting Android Scaffolding
+        run: rm -rf android
+
+      - name: Create Fresh Android Workspace
+        run: npx cap add android
+
+      - name: Sync Web Assets
         run: npx cap sync android
 
-      - name: Build APK via Gradle
+      - name: Build Standalone APK via Gradle
         run: |
           cd android
           chmod +x gradlew
