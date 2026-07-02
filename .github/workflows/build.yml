@@ -24,40 +24,36 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies
+      - name: Install Project Dependencies
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/bluetooth-le
           npx cap init M-Buddy mochi.buddy.app --web-dir=www
 
-      - name: Recreate Android Project Space
+      - name: Recreate Clean Native Architecture
         run: |
           rm -rf android
           npx cap add android
 
       - name: Inject Android Bluetooth Permissions
         run: |
-          node -e "
-          const fs = require('fs');
-          const path = 'android/app/src/main/AndroidManifest.xml';
-          if (fs.existsSync(path)) {
-            let content = fs.readFileSync(path, 'utf8');
-            const permissions = \`
-                <uses-permission android:name=\"android.permission.BLUETOOTH\" />
-                <uses-permission android:name=\"android.permission.BLUETOOTH_ADMIN\" />
-                <uses-permission android:name=\"android.permission.BLUETOOTH_SCAN\" />
-                <uses-permission android:name=\"android.permission.BLUETOOTH_CONNECT\" />
-                <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />
-            \`;
-            content = content.replace('</manifest>', permissions + '\n</manifest>');
-            fs.writeFileSync(path, content, 'utf8');
-            console.log('Successfully injected BLE hardware permissions.');
-          } else {
-            console.error('AndroidManifest.xml not found!');
-            process.exit(1);
-          }
-          "
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          
+          # Use a block of clean text to safely append hardware flags to the manifest
+          cat << 'EOF' > permissions.xml
+              <uses-permission android:name="android.permission.BLUETOOTH" />
+              <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+              <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+              <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+          </manifest>
+          EOF
+          
+          # Swap out the standard closing tag with the permissions block
+          sed -i 's|</manifest>||g' "$MANIFEST_PATH"
+          cat permissions.xml >> "$MANIFEST_PATH"
+          echo "Hardware permissions embedded safely."
 
-      - name: Sync Web Assets & Plugins
+      - name: Sync Production Assets & Plugins
         run: npx cap sync android
 
       - name: Build Standalone APK via Gradle
