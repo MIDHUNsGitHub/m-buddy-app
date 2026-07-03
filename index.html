@@ -116,7 +116,7 @@
         <div class="pt-3 border-t border-purple-950/40">
           <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-2">Saved Messages (Click to load)</span>
           <div id="savedTextsList" class="space-y-2 max-h-36 overflow-y-auto pr-1">
-            <div class="text-xs text-gray-500 italic py-1">Local Control Dashboard Mode Active.</div>
+            <div class="text-xs text-gray-500 italic py-1">Connecting to secure data vault...</div>
           </div>
         </div>
       </div>
@@ -140,55 +140,146 @@
 
   </main>
 
-  <footer class="text-center py-4 border-t border-purple-900/20 mt-4">
-    <div id="bottomStatusBar" class="mb-2 text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 text-purple-400/40 futuristic-title">
-      System Ready &bull; Offline Mode
-    </div>
-    <div class="text-[10px] text-purple-400/20 uppercase tracking-widest">
-      M-Buddy Companion System &copy; 2026
-    </div>
+  <footer class="text-center py-4 text-xs text-purple-400/40">
+    M-Buddy Companion System &copy; 2026
   </footer>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // ABSOLUTE ISOLATION BOUNDARY: Completely catches initialization blocks
-    try {
-      const fallbackConfig = {
-        apiKey: "AIzaSyDummyKeyForDevelopmentPurposesOnly",
-        authDomain: "mochi-buddy-development.firebaseapp.com",
-        projectId: "mochi-buddy-development",
-        storageBucket: "mochi-buddy-development.appspot.com",
-        messagingSenderId: "1234567890",
-        appId: "1:1234567890:web:abcdef"
-      };
+    const fallbackConfig = {
+      apiKey: "AIzaSyDummyKeyForDevelopmentPurposesOnly",
+      authDomain: "mochi-buddy-development.firebaseapp.com",
+      projectId: "mochi-buddy-development",
+      storageBucket: "mochi-buddy-development.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abcdef"
+    };
 
-      const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
-      
-      // Only attempt boot if a real, valid API key was supplied by the environment
-      if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("DummyKey")) {
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        signInAnonymously(auth).catch(() => console.log("Firebase network request safely contained."));
-      } else {
-        console.log("Development fallback key detected. App running in offline local-first mode.");
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
+
+    let currentUser = null;
+    let savedTextsUnsubscribe = null;
+
+    const initAuthAndObserver = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        onAuthStateChanged(auth, (user) => {
+          currentUser = user;
+          if (user) {
+            console.log("Firebase Session Initialized:", user.uid);
+            setupSavedTextsListener(user.uid);
+          } else {
+            console.log("Firebase Session Torn Down.");
+            if (savedTextsUnsubscribe) {
+              savedTextsUnsubscribe();
+              savedTextsUnsubscribe = null;
+            }
+          }
+        });
+      } catch (authError) {
+        console.error("Firebase Authentication process failed:", authError);
+        showToast("AUTH ERROR", "Could not complete secure cloud login handshake.", true);
       }
-    } catch (sandboxError) {
-      console.warn("Firebase engine safely neutralized. Switched context to hardware direct link layer.", sandboxError);
+    };
+
+    initAuthAndObserver();
+
+    function setupSavedTextsListener(userId) {
+      if (!userId) return; 
+      
+      if (savedTextsUnsubscribe) {
+        savedTextsUnsubscribe();
+      }
+
+      const collectionRef = collection(db, 'artifacts', appId, 'users', userId, 'saved_texts');
+      
+      savedTextsUnsubscribe = onSnapshot(collectionRef, (snapshot) => {
+        const listContainer = document.getElementById('savedTextsList');
+        listContainer.innerHTML = '';
+        
+        if (snapshot.empty) {
+          listContainer.innerHTML = `<div class="text-xs text-gray-500 italic py-1">No saved messages yet. Type and click Save above!</div>`;
+          return;
+        }
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const itemEl = document.createElement('div');
+          itemEl.className = "flex items-center justify-between bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/10 rounded-xl px-3 py-2 cursor-pointer transition active:scale-[0.98]";
+          
+          itemEl.innerHTML = `
+            <span class="text-xs font-bold tracking-wider truncate flex-grow mr-2 text-purple-200 futuristic-title">${data.text}</span>
+            <button class="delete-btn text-purple-400/50 hover:text-red-400 p-1 transition" data-id="${docSnap.id}">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          `;
+
+          itemEl.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-btn')) return;
+            const inputField = document.getElementById('customOledText');
+            inputField.value = data.text;
+            showToast("LOADED", `Loaded: "${data.text}"`);
+          });
+
+          itemEl.querySelector('.delete-btn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const docId = e.currentTarget.getAttribute('data-id');
+            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'saved_texts', docId);
+            try {
+              await deleteDoc(docRef);
+              showToast("DELETED", "Message removed.");
+            } catch (err) {
+              showToast("ERROR", "Could not remove saved message.", true);
+            }
+          });
+
+          listContainer.appendChild(itemEl);
+        });
+      }, (error) => {
+        console.error("Firestore Error: ", error);
+        document.getElementById('savedTextsList').innerHTML = `<div class="text-xs text-red-400/80 italic py-1">Failed to read cloud storage.</div>`;
+      });
     }
 
-    // Safety fallback layout filler
-    const listContainer = document.getElementById('savedTextsList');
-    if (listContainer) {
-      listContainer.innerHTML = `<div class="text-xs text-gray-500 italic py-1">Local Control Dashboard Mode Active.</div>`;
-    }
+    document.getElementById('saveTextBtn').addEventListener('click', async () => {
+      const inputField = document.getElementById('customOledText');
+      const textToSave = inputField.value.trim();
+      
+      if (!textToSave) {
+        showToast("ERROR", "Please write a message first!", true);
+        return;
+      }
+      if (!currentUser) {
+        showToast("ERROR", "Sign-in in progress...", true);
+        return;
+      }
 
-    // Redirect fallback to local mode to avoid button crashes
-    document.getElementById('saveTextBtn').addEventListener('click', () => {
-      showToast("DASHBOARD CONTROL", "Message text queued for local ESP32 hardware frame rendering.");
+      const collectionRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
+      try {
+        await addDoc(collectionRef, {
+          text: textToSave,
+          createdAt: Date.now()
+        });
+        showToast("SAVED", "Message saved securely to cloud!");
+      } catch (err) {
+        console.error("Save Error: ", err);
+        showToast("ERROR", "Could not synchronize with cloud storage.", true);
+      }
     });
   </script>
 
@@ -216,7 +307,15 @@
     const saveCheck = document.getElementById('saveCredentials');
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
-    const bottomStatusBar = document.getElementById('bottomStatusBar');
+
+    // HELPER FUNCTION: CRASH-PROOF MEMORY SAFE BASE64 ENCODER
+    function safeBytesToBase64(byteArray) {
+      let binaryString = '';
+      for (let i = 0; i < byteArray.length; i++) {
+        binaryString += String.fromCharCode(byteArray[i]);
+      }
+      return btoa(binaryString);
+    }
 
     window.addEventListener('load', async () => {
       const savedID = localStorage.getItem('mochi_device_id');
@@ -242,6 +341,7 @@
           try {
             const devices = await navigator.bluetooth.getDevices();
             if (devices.length > 0) {
+              showToast("AUTO-CONNECT", "Found previously paired M-Buddy. Re-establishing link...");
               attemptWebAutoConnect(devices[0]);
             }
           } catch (err) {
@@ -259,14 +359,15 @@
       try {
         connectionState.textContent = "AUTO-LINKING...";
         const server = await bluetoothDevice.gatt.connect();
+        
+        connectionState.textContent = "RESOLVING...";
         const service = await server.getPrimaryService(SERVICE_UUID);
         rxCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
         connectionState.textContent = "AUTHENTICATING...";
         await sendCommand(`AUTH:${pinCode}`);
 
-        const displayName = bluetoothDevice.name || "M-Buddy Sync";
-        connectionState.textContent = displayName;
+        connectionState.textContent = bluetoothDevice.name;
         connectionState.classList.add('text-green-400');
         pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
         pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
@@ -274,9 +375,6 @@
         connectBtn.classList.replace('from-purple-600', 'from-red-600');
         connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
         unpairBtn.classList.remove('hidden');
-
-        bottomStatusBar.textContent = `Connected to device: ${displayName}`;
-        bottomStatusBar.className = "mb-2 text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 text-green-400 futuristic-title";
 
         showToast("CONNECTED", "Hands-free link established!");
         startAutomaticSync();
@@ -327,22 +425,16 @@
         connectionState.textContent = "AUTHENTICATING...";
         
         const encoder = new TextEncoder();
-        const dataBytes = encoder.encode(`AUTH:${pinCode}`);
-        let binaryString = '';
-        for (let i = 0; i < dataBytes.length; i++) {
-          binaryString += String.fromCharCode(dataBytes[i]);
-        }
-        const secureBase64Value = btoa(binaryString);
+        const dataBytes = Array.from(encoder.encode(`AUTH:${pinCode}`));
 
         await Ble.write({
           deviceId: deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: secureBase64Value
+          value: safeBytesToBase64(dataBytes)
         });
 
-        const displayName = bluetoothDevice.name;
-        connectionState.textContent = displayName;
+        connectionState.textContent = bluetoothDevice.name;
         connectionState.classList.add('text-green-400');
         pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
         pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
@@ -350,9 +442,6 @@
         connectBtn.classList.replace('from-purple-600', 'from-red-600');
         connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
         unpairBtn.classList.remove('hidden');
-
-        bottomStatusBar.textContent = `Connected to device: ${displayName}`;
-        bottomStatusBar.className = "mb-2 text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 text-green-400 futuristic-title";
 
         showToast("CONNECTED", "Linked with Native BLE Core!");
         startAutomaticSync();
@@ -367,8 +456,6 @@
       const tTitle = document.getElementById('toastTitle');
       const tMsg = document.getElementById('toastMessage');
       const iconBox = document.getElementById('toastIcon');
-
-      if(!container || !tTitle || !tMsg || !iconBox) return;
 
       tTitle.textContent = title;
       tMsg.textContent = message;
@@ -394,8 +481,7 @@
       const now = new Date();
       const hrs = String(now.getHours()).padStart(2, '0');
       const mins = String(now.getMinutes()).padStart(2, '0');
-      const timeEl = document.getElementById('appTime');
-      if(timeEl) timeEl.textContent = `${hrs}:${mins}`;
+      document.getElementById('appTime').textContent = `${hrs}:${mins}`;
     }, 1000);
 
     function parseWeatherCode(code) {
@@ -410,9 +496,16 @@
 
     connectBtn.addEventListener('click', async () => {
       if (bluetoothDevice) {
+        if (isCapacitorActive) {
+          const Ble = window.Capacitor.Plugins.BluetoothLe;
+          try { await Ble.disconnect({ deviceId: bluetoothDevice.deviceId }); } catch(e){}
+        } else {
+          try { bluetoothDevice.gatt.disconnect(); } catch(e){}
+        }
         onDisconnected();
         return;
       }
+
       if (isCapacitorActive) {
         handleCapacitorConnect();
       } else {
@@ -421,6 +514,7 @@
     });
 
     unpairBtn.addEventListener('click', async () => {
+      showToast("UNPAIRING", "Clearing device pairings...");
       if (autoReconnectInterval) {
         clearInterval(autoReconnectInterval);
         autoReconnectInterval = null;
@@ -446,7 +540,7 @@
 
       unpairBtn.classList.add('hidden');
       onDisconnected();
-      showToast("UNPAIRED SUCCESSFULLY", "Device cleared configurations.");
+      showToast("UNPAIRED SUCCESSFULLY", "Device locks cleared configuration.");
     });
 
     async function handleWebConnect() {
@@ -466,7 +560,6 @@
 
       try {
         connectionState.textContent = "DISCOVERING...";
-        
         let searchFilter = { optionalServices: [SERVICE_UUID] };
         if (targetDeviceName) {
           searchFilter.filters = [{ name: targetDeviceName }];
@@ -479,6 +572,8 @@
 
         connectionState.textContent = "CONNECTING...";
         const server = await bluetoothDevice.gatt.connect();
+        
+        connectionState.textContent = "RESOLVING...";
         const service = await server.getPrimaryService(SERVICE_UUID);
         rxCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
@@ -487,8 +582,7 @@
 
         localStorage.setItem('mochi_paired_address', bluetoothDevice.id);
 
-        const displayName = bluetoothDevice.name || "M-Buddy Sync";
-        connectionState.textContent = displayName;
+        connectionState.textContent = bluetoothDevice.name;
         connectionState.classList.add('text-green-400');
         pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
         pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
@@ -496,9 +590,6 @@
         connectBtn.classList.replace('from-purple-600', 'from-red-600');
         connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
         unpairBtn.classList.remove('hidden');
-
-        bottomStatusBar.textContent = `Connected to device: ${displayName}`;
-        bottomStatusBar.className = "mb-2 text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 text-green-400 futuristic-title";
 
         showToast("SECURE PAIR COMPLETED", "Robot unlocked and fully synchronized!");
         startAutomaticSync();
@@ -512,7 +603,6 @@
     async function handleCapacitorConnect() {
       try {
         const Ble = window.Capacitor.Plugins.BluetoothLe;
-        
         const rawSuffix = inputMochiID.value.trim().toUpperCase();
         const pinCode = inputMochiPIN.value.trim() || "1234";
 
@@ -541,27 +631,21 @@
         
         connectionState.textContent = "AUTHENTICATING...";
         
-        // SAFE LINEAR MEMORY PIPELINE - PREVENTS STACK CALL EXHAUSTION
+        // 🔒 RUNNING THROUGH MEMORY-SAFE SERIALIZATION PIPELINE
         const encoder = new TextEncoder();
-        const dataBytes = encoder.encode(`AUTH:${pinCode}`);
-        let binaryString = '';
-        for (let i = 0; i < dataBytes.length; i++) {
-          binaryString += String.fromCharCode(dataBytes[i]);
-        }
-        const secureBase64Value = btoa(binaryString);
+        const dataBytes = Array.from(encoder.encode(`AUTH:${pinCode}`));
 
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: secureBase64Value
+          value: safeBytesToBase64(dataBytes)
         });
 
         bluetoothDevice = { deviceId: device.deviceId, name: device.name || "M-Buddy Sync" };
         localStorage.setItem('mochi_paired_address', device.deviceId);
 
-        const displayName = bluetoothDevice.name;
-        connectionState.textContent = displayName;
+        connectionState.textContent = bluetoothDevice.name;
         connectionState.classList.add('text-green-400');
         pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
         pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
@@ -569,9 +653,6 @@
         connectBtn.classList.replace('from-purple-600', 'from-red-600');
         connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
         unpairBtn.classList.remove('hidden');
-
-        bottomStatusBar.textContent = `Connected to device: ${displayName}`;
-        bottomStatusBar.className = "mb-2 text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 text-green-400 futuristic-title";
 
         showToast("SECURE PAIR COMPLETED", "Robot unlocked and synchronized!");
         startAutomaticSync();
@@ -590,18 +671,13 @@
         const Ble = window.Capacitor.Plugins.BluetoothLe;
         try {
           const encoder = new TextEncoder();
-          const dataBytes = encoder.encode(command);
-          let binaryString = '';
-          for (let i = 0; i < dataBytes.length; i++) {
-            binaryString += String.fromCharCode(dataBytes[i]);
-          }
-          const commandBase64 = btoa(binaryString);
-
+          const dataBytes = Array.from(encoder.encode(command));
+          
           await Ble.write({
             deviceId: bluetoothDevice.deviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: commandBase64
+            value: safeBytesToBase64(dataBytes)
           });
         } catch (err) {
           console.error(err);
@@ -624,7 +700,6 @@
 
     function startAutomaticSync() {
       if (gpsInterval) clearInterval(gpsInterval);
-
       gpsBtn.textContent = "Streaming Telemetry...";
       
       navigator.geolocation.getCurrentPosition(async (position) => {
@@ -687,10 +762,6 @@
       connectBtn.textContent = "Search & Authenticate";
       connectBtn.className = "w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 transition-all rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm shadow-lg shadow-purple-500/20";
       rxCharacteristic = null;
-      
-      bottomStatusBar.textContent = "System Ready • Offline Mode";
-      bottomStatusBar.className = "mb-2 text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 text-purple-400/40 futuristic-title";
-
       stopSync();
       
       const pairedDeviceAddress = localStorage.getItem('mochi_paired_address');
