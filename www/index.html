@@ -116,7 +116,7 @@
         </div>
 
         <div class="pt-3 border-t border-purple-950/40">
-          <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-2">Saved Messages (Click to load)</span>
+          <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-2">Saved Messages (Click to load & sync)</span>
           <div id="savedTextsList" class="space-y-2 max-h-36 overflow-y-auto pr-1">
             <div class="text-xs text-gray-500 italic py-1">Connecting to data vault...</div>
           </div>
@@ -149,7 +149,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const fallbackConfig = {
       apiKey: "AIzaSyDummyKeyForDevelopmentPurposesOnly",
@@ -169,21 +169,40 @@
     let currentUser = null;
     let savedTextsUnsubscribe = null;
 
-    // Load messages from local cache instantly on application launch
-    function renderLocalSavedTexts() {
+    // Load messages from local device memory sorted by timestamp (newest first)
+    window.renderLocalSavedTexts = function() {
       const listContainer = document.getElementById('savedTextsList');
       const cached = localStorage.getItem('mochi_text_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
+        // Sort newest first
+        parsed.sort((a, b) => b.createdAt - a.createdAt);
+        
         if (parsed.length > 0) {
           listContainer.innerHTML = '';
           parsed.forEach((item) => {
             const itemEl = document.createElement('div');
             itemEl.className = "flex items-center justify-between bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/10 rounded-xl px-3 py-2 cursor-pointer transition active:scale-[0.98]";
-            itemEl.innerHTML = `<span class="text-xs font-bold tracking-wider truncate flex-grow mr-2 text-purple-200 futuristic-title">${item.text}</span>`;
+            itemEl.innerHTML = `
+              <span class="text-xs font-bold tracking-wider truncate flex-grow mr-2 text-purple-200 futuristic-title">${item.text}</span>
+              <button class="local-delete-btn text-purple-400/40 hover:text-red-400 p-1 transition" data-id="${item.id}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            `;
+            
             itemEl.addEventListener('click', () => {
               document.getElementById('customOledText').value = item.text;
+              if (window.sendSyncPacket) window.sendSyncPacket(); // Instantly push text value to the screen
             });
+
+            itemEl.querySelector('.local-delete-btn').addEventListener('click', (e) => {
+              e.stopPropagation();
+              const targetId = e.currentTarget.getAttribute('data-id');
+              deleteLocalAndRemoteMessage(targetId);
+            });
+
             listContainer.appendChild(itemEl);
           });
           return;
@@ -192,7 +211,36 @@
       listContainer.innerHTML = `<div class="text-xs text-gray-500 italic py-1">No saved messages yet.</div>`;
     }
 
-    renderLocalSavedTexts();
+    // Instantly loads newest cached message to input box to prepare for automatic broadcast
+    function stageLatestMessageToInput() {
+      const cached = localStorage.getItem('mochi_text_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.length > 0) {
+          parsed.sort((a, b) => b.createdAt - a.createdAt);
+          document.getElementById('customOledText').value = parsed[0].text;
+        }
+      }
+    }
+
+    async function deleteLocalAndRemoteMessage(msgId) {
+      // 1. Remove from local mirror
+      let cached = localStorage.getItem('mochi_text_cache') ? JSON.parse(localStorage.getItem('mochi_text_cache')) : [];
+      cached = cached.filter(item => item.id !== msgId);
+      localStorage.setItem('mochi_text_cache', JSON.stringify(cached));
+      window.renderLocalSavedTexts();
+
+      // 2. Clear remote Firestore item if user profile session matches
+      if (currentUser && !msgId.startsWith('temp_')) {
+        const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts', msgId);
+        try { await deleteDoc(docRef); } catch (err) {}
+      }
+      window.showToast("DELETED", "Message cleared from vault.");
+    }
+
+    // Init display instantly
+    window.renderLocalSavedTexts();
+    stageLatestMessageToInput();
 
     const initAuthAndObserver = async () => {
       try {
@@ -204,9 +252,7 @@
 
         onAuthStateChanged(auth, (user) => {
           currentUser = user;
-          if (user) {
-            setupSavedTextsListener(user.uid);
-          }
+          if (user) setupSavedTextsListener(user.uid);
         });
       } catch (authError) {
         console.error("Firebase Auth failed:", authError);
@@ -220,77 +266,56 @@
       if (savedTextsUnsubscribe) savedTextsUnsubscribe();
 
       const collectionRef = collection(db, 'artifacts', appId, 'users', userId, 'saved_texts');
+      const sortedQuery = query(collectionRef, orderBy('createdAt', 'desc')); // Pushes newest to top
       
-      savedTextsUnsubscribe = onSnapshot(collectionRef, (snapshot) => {
-        const listContainer = document.getElementById('savedTextsList');
-        listContainer.innerHTML = '';
-        
+      savedTextsUnsubscribe = onSnapshot(sortedQuery, (snapshot) => {
         const localItems = [];
         if (snapshot.empty) {
-          renderLocalSavedTexts();
+          window.renderLocalSavedTexts();
           return;
         }
 
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          localItems.push({ id: docSnap.id, text: data.text });
-          
-          const itemEl = document.createElement('div');
-          itemEl.className = "flex items-center justify-between bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/10 rounded-xl px-3 py-2 cursor-pointer transition active:scale-[0.98]";
-          
-          itemEl.innerHTML = `
-            <span class="text-xs font-bold tracking-wider truncate flex-grow mr-2 text-purple-200 futuristic-title">${data.text}</span>
-            <button class="delete-btn text-purple-400/50 hover:text-red-400 p-1 transition" data-id="${docSnap.id}">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-              </svg>
-            </button>
-          `;
-
-          itemEl.addEventListener('click', () => {
-            document.getElementById('customOledText').value = data.text;
-          });
-
-          itemEl.querySelector('.delete-btn').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const docId = e.currentTarget.getAttribute('data-id');
-            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'saved_texts', docId);
-            try {
-              await deleteDoc(docRef);
-            } catch (err) {}
-          });
-
-          listContainer.appendChild(itemEl);
+          localItems.push({ id: docSnap.id, text: data.text, createdAt: data.createdAt || Date.now() });
         });
 
         localStorage.setItem('mochi_text_cache', JSON.stringify(localItems));
+        window.renderLocalSavedTexts();
+        stageLatestMessageToInput();
       }, (error) => {
-        renderLocalSavedTexts();
+        window.renderLocalSavedTexts();
       });
     }
 
     document.getElementById('saveTextBtn').addEventListener('click', async () => {
       const inputField = document.getElementById('customOledText');
       const textToSave = inputField.value.trim();
-      
       if (!textToSave) return;
       
-      // Instantly push to local mirror cache so it persists even without Firestore sync
+      const entryTimestamp = Date.now();
+      const uniqueTempId = 'temp_' + entryTimestamp;
+
+      // Optimistic layout generation: Push to top instantly
       const cached = localStorage.getItem('mochi_text_cache') ? JSON.parse(localStorage.getItem('mochi_text_cache')) : [];
-      cached.push({ id: 'temp_' + Date.now(), text: textToSave });
+      cached.push({ id: uniqueTempId, text: textToSave, createdAt: entryTimestamp });
       localStorage.setItem('mochi_text_cache', JSON.stringify(cached));
-      renderLocalSavedTexts();
+      window.renderLocalSavedTexts();
+
+      // Push to the device instantly via active BLE stream
+      if (window.sendSyncPacket) window.sendSyncPacket();
 
       if (!currentUser) return;
       const collectionRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
       try {
-        await addDoc(collectionRef, { text: textToSave, createdAt: Date.now() });
-        showToast("SAVED", "Message saved securely!");
+        await addDoc(collectionRef, { text: textToSave, createdAt: entryTimestamp });
+        window.showToast("SAVED", "Message pinned to top!");
       } catch (err) {}
     });
   </script>
 
   <script>
+    // System UUID parameters matching your ESP32 configurations
     const SERVICE_UUID        = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
     const CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 
@@ -314,7 +339,7 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // CRITICAL TRANSMISSION FIX: Formats values into LOWERCASE hex chunks so Android's native BLE stack registers them
+    // Convert values into standard lowercase hex streams so the ESP32 registers them cleanly
     function stringToHex(str) {
       const encoder = new TextEncoder();
       const view = encoder.encode(str);
@@ -323,7 +348,7 @@
         const num = view[i].toString(16);
         hex += (num.length === 1 ? '0' : '') + num;
       }
-      return hex.toLowerCase(); // <-- LOWERCASE FORCE STOPS PACKET Loss
+      return hex.toLowerCase();
     }
 
     window.addEventListener('load', async () => {
@@ -337,15 +362,15 @@
         runtimeEngineText.textContent = "Capacitor Native Engine Active";
         runtimeEngineText.className = "text-[10px] text-green-400 font-bold uppercase tracking-wider block mt-1";
         
-        // AUTO-RECONNECT WORKER CHAIN: Trigger background connect loop on launch if paired data exists
+        // AUTO-RECONNECT FLOW: Fires background handler on launch if paired MAC is saved
         const lastPairedMAC = localStorage.getItem('mochi_paired_mac');
         if (lastPairedMAC) {
-          showToast("RECONNECTING", "Attempting automatic hardware system bind...");
+          showToast("RECONNECTING", "Re-binding automatic background link...");
           executeAutomaticBackgroundReconnect(lastPairedMAC);
         }
       } else {
         isCapacitorActive = false;
-        runtimeEngineText.textContent = "Web Engine Active";
+        runtimeEngineText.textContent = "Web Bluetooth Engine Active";
       }
     });
 
@@ -363,10 +388,14 @@
       try {
         await Ble.initialize();
         connectionState.textContent = "AUTO RECONNECTING...";
-        await Ble.connect({ deviceId: macAddress, timeout: 8000 });
+        await Ble.connect({ deviceId: macAddress, timeout: 10000 });
         
-        await new Promise(r => setTimeout(r, 1000));
-        const hexValue = stringToHex(`AUTH:${pinCode}`);
+        await new Promise(r => setTimeout(r, 1200));
+        
+        // CRITICAL SYNC FIX: Formats the command to match the ESP32's AUTH requirements ("AUTH:PIN|Device_Name")
+        const handshakeToken = `AUTH:${pinCode}|CompanionApp`;
+        const hexValue = stringToHex(handshakeToken);
+        
         await Ble.write({
           deviceId: macAddress,
           service: SERVICE_UUID,
@@ -377,7 +406,7 @@
         bluetoothDevice = { deviceId: macAddress, name: "M-BUDDY" };
         finalizeConnectionUI("M-BUDDY");
       } catch (e) {
-        console.error("Auto background link dropped:", e);
+        console.error("Auto reconnect handshake failed:", e);
         onDisconnected();
       }
     }
@@ -398,7 +427,7 @@
         
         connectionState.textContent = "FILTERING SCAN...";
         
-        // STRICT NAME FILTER: Restricts view explicitly to elements targeting the M-Buddy naming rule
+        // PREFIX FILTER ENFORCEMENT: Restricts the display strictly to names starting with "M-Buddy"
         let scanFilters = [];
         if (rawSuffix) {
           scanFilters.push({ name: `M-Buddy_${rawSuffix}` });
@@ -416,13 +445,16 @@
           return;
         }
 
-        connectionState.textContent = "PAIRING HANDSHAKE...";
+        connectionState.textContent = "PAIRING LINK...";
         await Ble.connect({ deviceId: device.deviceId, timeout: 12000 });
         
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1200));
         connectionState.textContent = "AUTHENTICATING...";
         
-        const hexValue = stringToHex(`AUTH:${pinCode}`);
+        // Structured pipe payload to clear the microcontroller's incoming string constraints
+        const handshakeToken = `AUTH:${pinCode}|CompanionApp`;
+        const hexValue = stringToHex(handshakeToken);
+        
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
@@ -435,7 +467,7 @@
 
         finalizeConnectionUI(device.name || "M-BUDDY");
       } catch (err) {
-        showToast("LINK FAILURE", "Handshake dropped.", true);
+        showToast("LINK FAILURE", "Handshake timed out or rejected.", true);
         onDisconnected();
       }
     }
@@ -457,14 +489,17 @@
         connectionState.textContent = "DISCOVERING...";
         let searchFilter = { optionalServices: [SERVICE_UUID] };
         if (rawSuffix) searchFilter.filters = [{ name: `M-Buddy_${rawSuffix}` }];
-        else searchFilter.filters = [{ namePrefix: 'M-Buddy_' }];
+        else searchFilter.filters = [{ namePrefix: 'M-Buddy' }];
 
         bluetoothDevice = await navigator.bluetooth.requestDevice(searchFilter);
         const server = await bluetoothDevice.gatt.connect();
         const service = await server.getPrimaryService(SERVICE_UUID);
         rxCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-        await sendCommand(`AUTH:${pinCode}`);
+        const handshakeToken = `AUTH:${pinCode}|CompanionApp`;
+        const encoder = new TextEncoder();
+        await rxCharacteristic.writeValue(encoder.encode(handshakeToken));
+        
         finalizeConnectionUI(bluetoothDevice.name);
       } catch (err) {
         onDisconnected();
@@ -503,6 +538,7 @@
       if (gpsInterval) clearInterval(gpsInterval);
       gpsBtn.textContent = "Streaming Telemetry...";
 
+      // Get initial location information
       navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
@@ -518,17 +554,20 @@
           weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}C`;
           document.getElementById('appWeather').textContent = weatherDetails;
         } catch (e) {}
-        sendSyncPacket();
-      }, () => { sendSyncPacket(); });
+        window.sendSyncPacket();
+      }, () => { window.sendSyncPacket(); });
 
-      gpsInterval = setInterval(sendSyncPacket, 2500);
+      // Continuous loop pushing telemetric packets to the ESP32 dashboard array every 2.5 seconds
+      gpsInterval = setInterval(window.sendSyncPacket, 2500);
     }
 
-    function sendSyncPacket() {
+    window.sendSyncPacket = function() {
       const now = new Date();
       const hrs = String(now.getHours()).padStart(2, '0');
       const mins = String(now.getMinutes()).padStart(2, '0');
       const customText = customOledTextInput.value.trim() || "None";
+      
+      // Matches the ESP32's expected format: "DASH:HH:MM|Location|Weather|CustomText"
       const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
     }
@@ -550,7 +589,7 @@
       document.getElementById('appTime').textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     }, 1000);
 
-    function showToast(title, message, isError = false) {
+    window.showToast = function(title, message, isError = false) {
       const container = document.getElementById('toastContainer');
       document.getElementById('toastTitle').textContent = title;
       document.getElementById('toastMessage').textContent = message;
