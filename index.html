@@ -541,7 +541,7 @@
         
         connectionState.textContent = "AUTHENTICATING...";
         
-        // STABLE MEMORY CONVERSION PIPELINE
+        // SAFE LINEAR MEMORY PIPELINE - PREVENTS STACK CALL EXHAUSTION
         const encoder = new TextEncoder();
         const dataBytes = encoder.encode(`AUTH:${pinCode}`);
         let binaryString = '';
