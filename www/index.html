@@ -368,7 +368,7 @@
     });
 
     // Web Auto-Connect pipeline
-   async function handleCapacitorConnect() {
+ async function handleCapacitorConnect() {
       const Ble = window.Capacitor.Plugins.BluetoothLe;
       
       const rawSuffix = inputMochiID.value.trim().toUpperCase();
@@ -384,13 +384,12 @@
         await Ble.initialize();
         
         connectionState.textContent = "SCANNING...";
-        // FIXED: Corrected scanning filter format explicitly matching the plugin specs
         const device = await Ble.requestDevice({
           serviceUUIDs: [SERVICE_UUID]
         });
 
         if (!device || !device.deviceId) {
-          throw new Error("No valid M-Buddy hardware target selected.");
+          throw new Error("No device selected.");
         }
 
         connectionState.textContent = "CONNECTING...";
@@ -401,14 +400,20 @@
         
         connectionState.textContent = "AUTHENTICATING...";
         
+        // FIXED: Safe array allocation that works flawlessly with Android hardware memory
         const encoder = new TextEncoder();
-        const dataBytes = Array.from(encoder.encode(`AUTH:${pinCode}`));
+        const dataBytes = encoder.encode(`AUTH:${pinCode}`);
+        let binaryString = '';
+        for (let i = 0; i < dataBytes.length; i++) {
+          binaryString += String.fromCharCode(dataBytes[i]);
+        }
+        const secureBase64Value = btoa(binaryString);
 
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: btoa(String.fromCharCode.apply(null, dataBytes))
+          value: secureBase64Value
         });
 
         bluetoothDevice = { deviceId: device.deviceId, name: device.name || "M-Buddy Sync" };
@@ -430,7 +435,7 @@
         startAutomaticSync();
       } catch (err) {
         console.error("Capacitor Native BLE Error: ", err);
-        showToast("NATIVE BLE ERROR", err.message || "Could not link with native Bluetooth system.", true);
+        showToast("NATIVE BLE ERROR", err.message || "Connection handshake failed.", true);
         onDisconnected();
       }
     }
