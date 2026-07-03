@@ -368,21 +368,52 @@
     });
 
     // Web Auto-Connect pipeline
-    async function attemptWebAutoConnect(device) {
-      bluetoothDevice = device;
-      bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+   async function handleCapacitorConnect() {
+      const Ble = window.Capacitor.Plugins.BluetoothLe;
+      
+      const rawSuffix = inputMochiID.value.trim().toUpperCase();
       const pinCode = inputMochiPIN.value.trim() || "1234";
 
-      try {
-        connectionState.textContent = "AUTO-LINKING...";
-        const server = await bluetoothDevice.gatt.connect();
-        
-        connectionState.textContent = "RESOLVING...";
-        const service = await server.getPrimaryService(SERVICE_UUID);
-        rxCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+      if (saveCheck.checked) {
+        localStorage.setItem('mochi_device_id', rawSuffix);
+        localStorage.setItem('mochi_device_pin', pinCode);
+      }
 
+      try {
+        connectionState.textContent = "INITIALIZING BLE...";
+        await Ble.initialize();
+        
+        connectionState.textContent = "SCANNING...";
+        // FIXED: Corrected scanning filter format explicitly matching the plugin specs
+        const device = await Ble.requestDevice({
+          serviceUUIDs: [SERVICE_UUID]
+        });
+
+        if (!device || !device.deviceId) {
+          throw new Error("No valid M-Buddy hardware target selected.");
+        }
+
+        connectionState.textContent = "CONNECTING...";
+        await Ble.connect({ 
+          deviceId: device.deviceId,
+          timeout: 10000 
+        });
+        
         connectionState.textContent = "AUTHENTICATING...";
-        await sendCommand(`AUTH:${pinCode}`);
+        
+        const encoder = new TextEncoder();
+        const dataBytes = Array.from(encoder.encode(`AUTH:${pinCode}`));
+
+        await Ble.write({
+          deviceId: device.deviceId,
+          service: SERVICE_UUID,
+          characteristic: CHARACTERISTIC_UUID,
+          value: btoa(String.fromCharCode.apply(null, dataBytes))
+        });
+
+        bluetoothDevice = { deviceId: device.deviceId, name: device.name || "M-Buddy Sync" };
+        
+        localStorage.setItem('mochi_paired_address', device.deviceId);
 
         connectionState.textContent = bluetoothDevice.name;
         connectionState.classList.add('text-green-400');
@@ -393,12 +424,13 @@
         connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
         unpairBtn.classList.remove('hidden');
 
-        showToast("CONNECTED", "Hands-free link established!");
+        showToast("SECURE PAIR COMPLETED", "Robot unlocked and fully synchronized!");
         
-        // 🚀 Auto-engage telemetry and clock sync stream hands-free!
+        // Auto-engage telemetry streams safely
         startAutomaticSync();
       } catch (err) {
-        console.error("Auto-link connection error: ", err);
+        console.error("Capacitor Native BLE Error: ", err);
+        showToast("NATIVE BLE ERROR", err.message || "Could not link with native Bluetooth system.", true);
         onDisconnected();
       }
     }
