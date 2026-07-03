@@ -124,7 +124,7 @@
 
     <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6">
       <div class="flex items-center justify-between mb-4">
-        <span class="text-xs text-purple-400 uppercase tracking-widest">Live Location Name</span>
+        <span class="text-xs text-purple-400 uppercase tracking-widest">Locality Stream</span>
         <button id="gpsBtn" class="text-xs bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 px-3 py-1 rounded-full uppercase tracking-wider text-purple-300 transition">
           Start Sync Stream
         </button>
@@ -132,7 +132,7 @@
 
       <div class="space-y-3">
         <div class="flex justify-between border-b border-purple-950/40 pb-2">
-          <span class="text-gray-400">Detected City:</span>
+          <span class="text-gray-400">Detected Suburb/City:</span>
           <span id="appCity" class="font-bold futuristic-title">None</span>
         </div>
       </div>
@@ -147,8 +147,9 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"; // Standard library fallback context
 
+    // Explicit structural initialization using structural verification trees
     const fallbackConfig = {
       apiKey: "AIzaSyDummyKeyForDevelopmentPurposesOnly",
       authDomain: "mochi-buddy-development.firebaseapp.com",
@@ -161,9 +162,16 @@
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
-    const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
+    let db;
+    try {
+      // Dynamic imports inside script blocks safely handle structural modules
+      import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((mod) => {
+        db = mod.getFirestore(app);
+        initAuthAndObserver();
+      });
+    } catch(e) {}
 
+    const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
     let currentUser = null;
     let savedTextsUnsubscribe = null;
 
@@ -177,7 +185,7 @@
 
         onAuthStateChanged(auth, (user) => {
           currentUser = user;
-          if (user) {
+          if (user && db) {
             setupSavedTextsListener(user.uid);
           } else {
             if (savedTextsUnsubscribe) {
@@ -191,61 +199,60 @@
       }
     };
 
-    initAuthAndObserver();
-
     function setupSavedTextsListener(userId) {
-      if (!userId) return;
+      if (!userId || !db) return;
       if (savedTextsUnsubscribe) { savedTextsUnsubscribe(); }
 
-      const collectionRef = collection(db, 'artifacts', appId, 'users', userId, 'saved_texts');
-      
-      savedTextsUnsubscribe = onSnapshot(collectionRef, (snapshot) => {
-        const listContainer = document.getElementById('savedTextsList');
-        listContainer.innerHTML = '';
+      import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then((mod) => {
+        const collectionRef = mod.collection(db, 'artifacts', appId, 'users', userId, 'saved_texts');
         
-        if (snapshot.empty) {
-          listContainer.innerHTML = `<div class="text-xs text-gray-500 italic py-1">No saved messages yet. Type and click Save above!</div>`;
-          return;
-        }
-
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          const itemEl = document.createElement('div');
-          itemEl.className = "flex items-center justify-between bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/10 rounded-xl px-3 py-2 cursor-pointer transition active:scale-[0.98]";
+        savedTextsUnsubscribe = mod.onSnapshot(collectionRef, (snapshot) => {
+          const listContainer = document.getElementById('savedTextsList');
+          listContainer.innerHTML = '';
           
-          itemEl.innerHTML = `
-            <span class="text-xs font-bold tracking-wider truncate flex-grow mr-2 text-purple-200 futuristic-title">${data.text}</span>
-            <button class="delete-btn text-purple-400/50 hover:text-red-400 p-1 transition" data-id="${docSnap.id}">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-              </svg>
-            </button>
-          `;
+          if (snapshot.empty) {
+            listContainer.innerHTML = `<div class="text-xs text-gray-500 italic py-1">No saved messages yet. Type and click Save above!</div>`;
+            return;
+          }
 
-          itemEl.addEventListener('click', (e) => {
-            if (e.target.closest('.delete-btn')) return;
-            const inputField = document.getElementById('customOledText');
-            inputField.value = data.text;
-            showToast("LOADED", `Loaded: "${data.text}"`);
-            if (window.sendSyncPacket) window.sendSyncPacket();
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const itemEl = document.createElement('div');
+            itemEl.className = "flex items-center justify-between bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/10 rounded-xl px-3 py-2 cursor-pointer transition active:scale-[0.98]";
+            
+            itemEl.innerHTML = `
+              <span class="text-xs font-bold tracking-wider truncate flex-grow mr-2 text-purple-200 futuristic-title">${data.text}</span>
+              <button class="delete-btn text-purple-400/50 hover:text-red-400 p-1 transition" data-id="${docSnap.id}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            `;
+
+            itemEl.addEventListener('click', (e) => {
+              if (e.target.closest('.delete-btn')) return;
+              document.getElementById('customOledText').value = data.text;
+              showToast("LOADED", `Loaded: "${data.text}"`);
+              if (window.sendSyncPacket) window.sendSyncPacket();
+            });
+
+            itemEl.querySelector('.delete-btn').addEventListener('click', async (e) => {
+              e.stopPropagation();
+              const docId = e.currentTarget.getAttribute('data-id');
+              const docRef = mod.doc(db, 'artifacts', appId, 'users', userId, 'saved_texts', docId);
+              try {
+                await mod.deleteDoc(docRef);
+                showToast("DELETED", "Message removed.");
+              } catch (err) {
+                showToast("ERROR", "Could not remove saved message.", true);
+              }
+            });
+
+            listContainer.appendChild(itemEl);
           });
-
-          itemEl.querySelector('.delete-btn').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const docId = e.currentTarget.getAttribute('data-id');
-            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'saved_texts', docId);
-            try {
-              await deleteDoc(docRef);
-              showToast("DELETED", "Message removed.");
-            } catch (err) {
-              showToast("ERROR", "Could not remove saved message.", true);
-            }
-          });
-
-          listContainer.appendChild(itemEl);
+        }, (error) => {
+          document.getElementById('savedTextsList').innerHTML = `<div class="text-xs text-red-400/80 italic py-1">Failed to read cloud storage.</div>`;
         });
-      }, (error) => {
-        document.getElementById('savedTextsList').innerHTML = `<div class="text-xs text-red-400/80 italic py-1">Failed to read cloud storage.</div>`;
       });
     }
 
@@ -257,22 +264,24 @@
         showToast("ERROR", "Please write a message first!", true);
         return;
       }
-      if (!currentUser) {
+      if (!currentUser || !db) {
         showToast("ERROR", "Sign-in in progress...", true);
         return;
       }
 
-      const collectionRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
-      try {
-        await addDoc(collectionRef, {
-          text: textToSave,
-          createdAt: Date.now()
-        });
-        showToast("SAVED", "Message saved securely to cloud!");
-        if (window.sendSyncPacket) window.sendSyncPacket();
-      } catch (err) {
-        showToast("ERROR", "Could not synchronize with cloud storage.", true);
-      }
+      import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then(async (mod) => {
+        const collectionRef = mod.collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
+        try {
+          await mod.addDoc(collectionRef, {
+            text: textToSave,
+            createdAt: Date.now()
+          });
+          showToast("SAVED", "Message saved securely to cloud!");
+          if (window.sendSyncPacket) window.sendSyncPacket();
+        } catch (err) {
+          showToast("ERROR", "Could not synchronize with cloud storage.", true);
+        }
+      });
     });
   </script>
 
@@ -286,7 +295,7 @@
     let isCapacitorActive = false;
 
     let cityName = "Kochi";
-    let weatherDetails = "Cloudy 29C";
+    let weatherDetails = "Cloudy 29°C";
 
     const connectBtn = document.getElementById('connectBtn');
     const unpairBtn = document.getElementById('unpairBtn');
@@ -300,7 +309,7 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // Robust base64 array encoder that eliminates cross-platform string formatting discrepancies
+    // Robust base64 implementation preventing APK data fragmentation
     function cleanToBase64(str) {
       const encoder = new TextEncoder();
       const bytes = encoder.encode(str);
@@ -319,9 +328,7 @@
       if (savedPIN) inputMochiPIN.value = savedPIN;
 
       const pairedDeviceAddress = localStorage.getItem('mochi_paired_address');
-      if (pairedDeviceAddress) {
-        unpairBtn.classList.remove('hidden');
-      }
+      if (pairedDeviceAddress) unpairBtn.classList.remove('hidden');
 
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
         isCapacitorActive = true;
@@ -371,8 +378,7 @@
       pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
       pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
       connectBtn.textContent = "Disconnect Link";
-      connectBtn.classList.replace('from-purple-600', 'from-red-600');
-      connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
+      connectBtn.className = "w-full py-4 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 active:scale-95 transition-all rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm shadow-lg shadow-purple-500/20";
       unpairBtn.classList.remove('hidden');
       startAutomaticSync();
     }
@@ -388,9 +394,7 @@
     unpairBtn.addEventListener('click', async () => {
       showToast("UNPAIRING", "Clearing device bindings & pairing lock...");
       if (isCapacitorActive && bluetoothDevice) {
-        try {
-          await window.Capacitor.Plugins.BluetoothLe.disconnect({ deviceId: bluetoothDevice.deviceId });
-        } catch (e) {}
+        try { await window.Capacitor.Plugins.BluetoothLe.disconnect({ deviceId: bluetoothDevice.deviceId }); } catch (e) {}
       } else if (bluetoothDevice && bluetoothDevice.gatt && bluetoothDevice.gatt.connected) {
         bluetoothDevice.gatt.disconnect();
       }
@@ -416,9 +420,16 @@
 
       try {
         connectionState.textContent = "DISCOVERING...";
-        let searchFilter = { optionalServices: [SERVICE_UUID] };
-        if (targetDeviceName) searchFilter.filters = [{ name: targetDeviceName }];
-        else searchFilter.filters = [{ namePrefix: 'M-Buddy_' }];
+        // CRITICAL FIX: Explicit filtration criteria applied directly to filtering loops
+        let searchFilter = { 
+          filters: [
+            { services: [SERVICE_UUID] }
+          ]
+        };
+        
+        if (targetDeviceName) {
+          searchFilter.filters.push({ name: targetDeviceName });
+        }
 
         bluetoothDevice = await navigator.bluetooth.requestDevice(searchFilter);
         connectionState.textContent = "CONNECTING...";
@@ -447,6 +458,7 @@
 
       try {
         connectionState.textContent = "SCANNING...";
+        // Exclusively scans and pulls up hardware sharing our exact registration footprint
         const device = await Ble.requestDevice({ services: [SERVICE_UUID] });
         if (!device || !device.deviceId) { onDisconnected(); return; }
 
@@ -492,15 +504,14 @@
 
     function startAutomaticSync() {
       if (gpsInterval) { clearInterval(gpsInterval); gpsInterval = null; }
-
-      gpsBtn.textContent = "Streaming Telemetry...";
+      gpsBtn.textContent = "Streaming Locality...";
       
       const processMetricsUpdate = async (lat, lon) => {
         try {
-          // OpenStreetMap reverse proxy handling optimized to bypass compiled WebView SSL/CORS sandbox barriers
+          // Pull human-readable residential/locality tags instead of bare numeric coordinate pairs
           const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
           const geoData = await geoRes.json();
-          cityName = geoData.address.city || geoData.address.town || geoData.address.suburb || "Kochi";
+          cityName = geoData.address.suburb || geoData.address.neighbourhood || geoData.address.city || geoData.address.town || "Kochi";
         } catch(e) {
           cityName = "Kochi";
         }
@@ -513,9 +524,9 @@
           const weatherData = await weatherRes.json();
           const temp = Math.round(weatherData.current_weather.temperature);
           const wDesc = parseWeatherCode(weatherData.current_weather.weathercode);
-          weatherDetails = `${wDesc} ${temp}C`;
+          weatherDetails = `${wDesc} ${temp}°C`; // Precise Degree mapping implemented here
         } catch(e) {
-          weatherDetails = "Sunny 31C";
+          weatherDetails = "Sunny 31°C";
         }
 
         if (weatherDetails.length > 12) weatherDetails = weatherDetails.substring(0, 12);
@@ -525,13 +536,8 @@
       };
 
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          processMetricsUpdate(position.coords.latitude, position.coords.longitude);
-        },
-        (err) => {
-          // Robust APK Fallback: Keeps sync active with standard baseline if hardware coordinates face delay
-          processMetricsUpdate(9.9312, 76.2673);
-        },
+        (position) => { processMetricsUpdate(position.coords.latitude, position.coords.longitude); },
+        (err) => { processMetricsUpdate(9.9312, 76.2673); },
         { enableHighAccuracy: false, timeout: 7000 }
       );
 
@@ -547,6 +553,7 @@
       let customText = customOledTextInput.value.trim();
       if (!customText) customText = "None";
       
+      // Structural alignment with firmware parser format: "DASH:HH:MM|Location|Weather|CustomText"
       const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
     }
