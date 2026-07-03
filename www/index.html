@@ -290,15 +290,25 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // SAFE NATIVE HELPER: Converts native Unicode text arrays cleanly to avoid bridging payload memory exceptions
-    function stringToAsbValue(str) {
+    // SAFE COMPILER TRANSLATOR: Formats strings into clean Hex arrays that Capacitor and Web engines accept without triggering memory memory crashes
+    function stringToHex(str) {
       const encoder = new TextEncoder();
-      const bytes = encoder.encode(str);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
+      const view = encoder.encode(str);
+      let hex = '';
+      for (let i = 0; i < view.length; i++) {
+        const num = view[i].toString(16);
+        hex += (num.length === 1 ? '0' : '') + num;
       }
-      return btoa(binary);
+      return hex;
+    }
+
+    // Convert hex string back to a regular string for Web BLE compatibility
+    function hexToString(hexStr) {
+      let str = '';
+      for (let i = 0; i < hexStr.length; i += 2) {
+        str += String.fromCharCode(parseInt(hexStr.substr(i, 2), 16));
+      }
+      return str;
     }
 
     window.addEventListener('load', async () => {
@@ -310,7 +320,6 @@
       const pairedDeviceAddress = localStorage.getItem('mochi_paired_address');
       if (pairedDeviceAddress) unpairBtn.classList.remove('hidden');
 
-      // Detect if running inside a phone container app wrapper or a standard web browser
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
         isCapacitorActive = true;
         runtimeEngineText.textContent = "Capacitor Native Engine Active";
@@ -347,10 +356,17 @@
 
       try {
         connectionState.textContent = "INITIALIZING...";
-        await Ble.initialize({ androidNeverForLocation: true });
+        await Ble.initialize({ androidNeverForLocation: false });
         
         connectionState.textContent = "SCANNING...";
-        const device = await Ble.requestDevice({ serviceUUIDs: [SERVICE_UUID] });
+        
+        // DEVICE LOCK FILTER: Only shows devices starting with M-Buddy to clear out other random entries
+        let scanOptions = { serviceUUIDs: [SERVICE_UUID] };
+        if (rawSuffix) {
+          scanOptions.name = `M-Buddy_${rawSuffix}`;
+        }
+
+        const device = await Ble.requestDevice(scanOptions);
 
         if (!device || !device.deviceId) {
           onDisconnected();
@@ -358,21 +374,21 @@
         }
 
         connectionState.textContent = "CONNECTING...";
-        await Ble.connect({ deviceId: device.deviceId, timeout: 10000 });
+        await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
         
-        // Short grace period before data packet burst transmission
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 1000));
 
         connectionState.textContent = "AUTHENTICATING...";
         
         const payloadStr = `AUTH:${pinCode}`;
-        const encodedValue = stringToAsbValue(payloadStr);
+        const hexValue = stringToHex(payloadStr);
 
+        // STABLE HARDWARE TRANSMISSION
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: encodedValue
+          value: hexValue
         });
 
         bluetoothDevice = { deviceId: device.deviceId, name: device.name || "M-BUDDY" };
@@ -456,29 +472,29 @@
     }
 
     async function sendCommand(command) {
+      const hexEncoded = stringToHex(command);
       if (isCapacitorActive) {
         if (!bluetoothDevice) return;
         const Ble = window.Capacitor.Plugins.BluetoothLe;
         try {
-          const encoded = stringToAsbValue(command);
           await Ble.write({
             deviceId: bluetoothDevice.deviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: encoded
+            value: hexEncoded
           });
         } catch (err) {
           console.error("Capacitor Write Error: ", err);
         }
       } else {
         if (!rxCharacteristic) return;
-        const encoder = new TextEncoder();
-        const data = encoder.encode(command);
         try {
+          const encoder = new TextEncoder();
+          const rawBytes = encoder.encode(command);
           if (typeof rxCharacteristic.writeValueWithResponse === 'function') {
-            await rxCharacteristic.writeValueWithResponse(data);
+            await rxCharacteristic.writeValueWithResponse(rawBytes);
           } else {
-            await rxCharacteristic.writeValue(data);
+            await rxCharacteristic.writeValue(rawBytes);
           }
         } catch (err) {
           console.error("Web BLE Write Error: ", err);
@@ -539,7 +555,7 @@
         sendSyncPacket();
       });
 
-      gpsInterval = setInterval(sendSyncPacket, 2000);
+      gpsInterval = setInterval(sendSyncPacket, 3000);
     }
 
     function sendSyncPacket() {
