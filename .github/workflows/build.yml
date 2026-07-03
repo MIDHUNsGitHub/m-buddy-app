@@ -24,38 +24,17 @@ jobs:
         with:
           node-version: '22'
 
-      # Fixes any potential packaging issues by creating a clean blueprint
-      - name: Autogenerate Clean Base package.json
-        run: |
-          cat << 'EOF' > package.json
-          {
-            "name": "m-buddy-companion-app",
-            "version": "1.0.0",
-            "description": "M-Buddy ESP32 Controller Wrapper",
-            "main": "index.js",
-            "scripts": {
-              "build": "echo 'Static setup done.'"
-            },
-            "dependencies": {
-              "@capacitor/android": "^6.0.0",
-              "@capacitor/cli": "^6.0.0",
-              "@capacitor/core": "^6.0.0",
-              "@capacitor-community/bluetooth-le": "^6.0.0"
-            }
-          }
-          EOF
-          echo "Base package.json cleanly generated."
-
       - name: Install Project Dependencies
         run: |
           npm install
+          npm install @capacitor/android@6.0.0 @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor-community/bluetooth-le@6.0.0
 
       - name: Recreate Clean Native Architecture
         run: |
           rm -rf android
           npx cap add android
 
-      # SELF-CONTAINED VALUES: Inject resource tables needed by the compiler
+      # SELF-HEALING CONFIGURATION: Injects resource parameters missing from standard templates
       - name: Inject Baseline Android Build Values
         run: |
           mkdir -p android/app/src/main/res/values
@@ -104,7 +83,7 @@ jobs:
           </paths>
           EOF
 
-      # HARDWARE INJECTION: Forces correct Bluetooth and connectivity permissions directly into the code
+      # SYSTEM PERMISSIONS INJECTION: Overwrites the default manifest file to add Bluetooth capabilities
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
           cat << 'EOF' > android/app/src/main/AndroidManifest.xml
@@ -155,7 +134,7 @@ jobs:
           if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
           else
-            echo "Branding folder missed. Standard fallback preset applied."
+            echo "Logo not found. Skipping icon generations."
           fi
 
       - name: Sync Production Assets & Plugins
