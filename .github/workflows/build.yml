@@ -22,8 +22,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Suppresses Node 20 deprecation warnings entirely
+          node-version: '22' # Using Node 22 explicitly deletes the Node 20 deprecation warning banner
 
+      # Fixes the dependency footprint maps
       - name: Autogenerate Clean Base package.json
         run: |
           cat << 'EOF' > package.json
@@ -43,16 +44,16 @@ jobs:
             }
           }
           EOF
-          echo "Base package.json cleanly generated."
+          echo "Base package.json cleanly generated in root folder."
 
-      # CRITICAL SAFEGUARD: Generates the missing directory to prevent immediate script crashes
-      - name: Ensure Web Directory Exists
+      # CRITICAL STABILITY PATCH: Generates the web asset landing directory before initializing tools
+      - name: Ensure Production Web Assets Folder Exists
         run: |
           mkdir -p www
           if [ ! -f "www/index.html" ]; then
-            echo "<html><body>M-Buddy Workspace Engine</body></html>" > www/index.html
+            echo "<html><body>M-Buddy Standalone Context Layer</body></html>" > www/index.html
           fi
-          echo "Web directory verified."
+          echo "Web directory validated successfully."
 
       - name: Install Project Dependencies
         run: |
@@ -64,8 +65,8 @@ jobs:
           rm -rf android
           npx cap add android
 
-      # STABILITY FIX: Injects resource tables missing from a raw 'cap add' command
-      - name: Inject Baseline Android Build Values
+      # STRUCTURE REPAIR STAGE: Writes the missing design and style maps required by Android Gradle compile architectures
+      - name: Inject Baseline Android Value Tables
         run: |
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/res/xml
@@ -112,6 +113,7 @@ jobs:
               <external-path name="external_files" path="."/>
           </paths>
           EOF
+          echo "Native XML style configuration overrides set up."
 
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
@@ -156,14 +158,16 @@ jobs:
               </application>
           </manifest>
           EOF
+          echo "Native system authorization paths set up."
 
       - name: Auto-Compile Custom Branding Launcher Icons
         run: |
           npm install @capacitor/assets --save-dev
           if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
+            echo "Custom brand icons successfully generated inside native engine."
           else
-            echo "Warning: assets/logo.png missing. Standard presets used."
+            echo "Warning: assets/logo.png missing. Skipping asset compile step."
           fi
 
       - name: Sync Production Assets & Plugins
