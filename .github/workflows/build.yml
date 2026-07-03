@@ -43,21 +43,19 @@ jobs:
             }
           }
           EOF
-          echo "Base package.json cleanly generated in root folder."
+          echo "Base package.json cleanly generated."
 
       - name: Install Project Dependencies
         run: |
           npm install
           npx cap init M-Buddy mochi.buddy.app --web-dir=www
 
-      - name: Safely Verify Native Architecture
+      - name: Generate Clean Target Native Shell
         run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
+          npx cap add android
 
-      # FIXED COMPILER CRASH: Injects essential missing style XML parameters required by Android Gradle
-      - name: Inject Strings, Styles, and Android Build Variables
+      # FIXED COMPILER CRASH: Injects all essential strings, styles, variables, and path providers
+      - name: Inject Complete Missing Native Framework Dependencies
         run: |
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/res/xml
@@ -92,7 +90,9 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar"></style>
-              <style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.Light.NoActionBar"></style>
+              <style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.Light.NoActionBar">
+                  <item name="android:background">#0c0414</item>
+              </style>
           </resources>
           EOF
 
@@ -102,7 +102,7 @@ jobs:
               <external-path name="external_files" path="."/>
           </paths>
           EOF
-          echo "Missing native configuration layout maps injected successfully."
+          echo "Missing native configuration variables injected successfully."
 
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
@@ -154,7 +154,7 @@ jobs:
           npm install @capacitor/assets --save-dev
           if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
-            echo "Custom assets compiled successfully."
+            echo "Custom branding assets generated successfully."
           else
             echo "Warning: assets/logo.png fallback missing. Standard presets used."
           fi
