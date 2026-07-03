@@ -19,11 +19,12 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Set up Node.js
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
+      # Fix for package dependencies tree structure
       - name: Autogenerate Clean Base package.json
         run: |
           cat << 'EOF' > package.json
@@ -55,6 +56,29 @@ jobs:
           if [ ! -d "android" ]; then
             npx cap add android
           fi
+
+      # STRUCTURAL FIX: Injects missing native build string tables required by Gradle compiler templates
+      - name: Inject Strings and Design Colors Configuration Maps
+        run: |
+          mkdir -p android/app/src/main/res/values
+          
+          cat << 'EOF' > android/app/src/main/res/values/strings.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">M-Buddy</string>
+              <string name="title_activity_main">MainActivity</string>
+              <string name="custom_url_scheme">mochi.buddy.app</string>
+          </resources>
+          EOF
+
+          cat << 'EOF' > android/app/src/main/res/values/styles.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar"></style>
+              <style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.Light.NoActionBar"></style>
+          </resources>
+          EOF
+          echo "Missing native resource dependency XML definitions written."
 
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
