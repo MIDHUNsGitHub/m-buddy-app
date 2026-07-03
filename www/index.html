@@ -61,10 +61,10 @@
     </div>
   </div>
 
-  <header class="text-left max-w-md mx-auto w-full pt-4 border-b-2 border-black pb-4">
-    <div class="flex justify-between items-baseline">
-      <h1 class="retro-heading text-3xl font-black tracking-tight">M-BUDDY</h1>
-      <span class="text-xs font-bold uppercase tracking-widest bg-black text-white px-2 py-0.5">SYS.LINK.012</span>
+  <header class="text-left max-w-md mx-auto w-full pt-4 border-b-2 border-black pb-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <img src="asset/logo.png" alt="M-Buddy Logo" class="h-9 w-auto object-contain border-2 border-black bg-white p-1" onerror="this.style.display='none'; document.getElementById('fallbackHeading').classList.remove('hidden');">
+      <h1 id="fallbackHeading" class="retro-heading text-3xl font-black tracking-tight hidden">M-BUDDY</h1>
     </div>
     <p class="text-xs text-gray-600 font-semibold tracking-wide uppercase mt-1">Companion Control Terminal</p>
   </header>
@@ -192,13 +192,11 @@
     let currentUser = null;
     let savedTextsUnsubscribe = null;
 
-    // Renders custom lists ordered newest message at the top
     window.renderLocalSavedTexts = function() {
       const listContainer = document.getElementById('savedTextsList');
       const cached = localStorage.getItem('mochi_text_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
-        // FORCE NEWEST AT TOP
         parsed.sort((a, b) => b.createdAt - a.createdAt);
         
         if (parsed.length > 0) {
@@ -217,7 +215,7 @@
               if (e.target.classList.contains('local-delete-btn')) return;
               document.getElementById('customOledText').value = item.text;
               window.showToast("STAGED", "Loaded to transmission register.");
-              if (window.sendSyncPacket) window.sendSyncPacket(); // Auto-sync immediately upon select!
+              if (window.sendSyncPacket) window.sendSyncPacket();
             });
 
             itemEl.querySelector('.local-delete-btn').addEventListener('click', (e) => {
@@ -241,7 +239,7 @@
         if (parsed.length > 0) {
           parsed.sort((a, b) => b.createdAt - a.createdAt);
           document.getElementById('customOledText').value = parsed[0].text;
-          if (window.sendSyncPacket) window.sendSyncPacket(); // Auto-sync on startup!
+          if (window.sendSyncPacket) window.sendSyncPacket();
         }
       }
     }
@@ -321,7 +319,6 @@
       localStorage.setItem('mochi_text_cache', JSON.stringify(cached));
       window.renderLocalSavedTexts();
 
-      // Send to the robot immediately!
       if (window.sendSyncPacket) window.sendSyncPacket();
 
       if (!currentUser) return;
@@ -378,7 +375,6 @@
         isCapacitorActive = true;
         runtimeEngineText.textContent = "Capacitor Native Stack Running";
         
-        // AUTO-RECONNECT FLOW
         const lastPairedMAC = localStorage.getItem('mochi_paired_mac');
         const lastPairedName = localStorage.getItem('mochi_paired_name') || "M-BUDDY";
         if (lastPairedMAC) {
@@ -409,7 +405,6 @@
         
         await new Promise(r => setTimeout(r, 1200));
         
-        // HANDSHAKE FIXED PAYLOAD: Passing the required pipe "|" + Handset tag matching the ESP32 constraints
         const handshakeToken = `AUTH:${pinCode}|Handset`;
         await Ble.write({
           deviceId: macAddress,
@@ -442,7 +437,6 @@
         
         connectionState.textContent = "SCANNING...";
         
-        // ENFORCED HARDWARE FILTER BOUNDARY: Hides all generic ambient devices
         let scanFilters = [];
         if (rawSuffix) {
           scanFilters.push({ name: `M-Buddy_${rawSuffix}` });
@@ -478,7 +472,7 @@
 
         bluetoothDevice = { deviceId: device.deviceId, name: finalCalculatedName };
         localStorage.setItem('mochi_paired_mac', device.deviceId);
-        localStorage.setItem('mochi_paired_name', finalCalculatedName); // Retain full custom title segment across app restarts
+        localStorage.setItem('mochi_paired_name', finalCalculatedName);
 
         finalizeConnectionUI(finalCalculatedName);
       } catch (err) {
@@ -572,7 +566,7 @@
         window.sendSyncPacket();
       }, () => { window.sendSyncPacket(); });
 
-      // Live 2.5 second intervals loop pushing data to your ESP32
+      // Live loop tracking
       gpsInterval = setInterval(window.sendSyncPacket, 2500);
     }
 
@@ -580,9 +574,14 @@
       const now = new Date();
       const hrs = String(now.getHours()).padStart(2, '0');
       const mins = String(now.getMinutes()).padStart(2, '0');
-      const customText = customOledTextInput.value.trim() || "None";
       
-      // DASH:HH:MM|Location|Weather|CustomText -> Handled directly by line 291 of your .ino file
+      // CRITICAL DATA FIX: Enforce fallback text value string to satisfy ESP32 line 363 requirements
+      let customText = customOledTextInput.value.trim();
+      if (!customText) {
+        customText = "None";
+      }
+      
+      // Strict packet syntax matching ESP32 firmware constraints
       const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
     }
