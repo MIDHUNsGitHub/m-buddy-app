@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>M-Buddy Retro System Link</title>
+  <title>M-Buddy Companion Control</title>
   
   <script src="capacitor.js"></script>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Space+Grotesk:wght=500;700&display=swap" rel="stylesheet">
   
   <style>
     body {
@@ -53,7 +53,7 @@
 
   <div id="toastContainer" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none transition-all duration-300 transform -translate-y-10 opacity-0">
     <div class="bg-white border-2 border-black p-4 shadow-[4px_4px_0px_#000000] flex items-center gap-3">
-      <div id="toastIcon" class="w-6 h-6 flex items-center justify-center font-bold text-sm border border-black"></div>
+      <div id="toastIcon" class="w-6 h-6 flex items-center justify-center font-bold text-sm border border-black">!</div>
       <div>
         <p id="toastTitle" class="font-bold text-xs tracking-wider uppercase retro-heading">SYSTEM</p>
         <p id="toastMessage" class="text-xs text-gray-700 mt-0.5">Details.</p>
@@ -76,7 +76,7 @@
         <div>
           <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Hardware State</span>
           <h2 id="connectionState" class="text-2xl font-black tracking-tight retro-heading mt-0.5">DISCONNECTED</h2>
-          <span id="runtimeEngine" class="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1">Init Engine</span>
+          <span id="runtimeEngine" class="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1">Initializing Engine...</span>
         </div>
         <div class="flex items-center gap-1.5 border-2 border-black px-2 py-1 bg-gray-50">
           <div id="pingDot" class="w-3 h-3 bg-red-500 rounded-full border border-black"></div>
@@ -97,7 +97,7 @@
         </div>
         <div class="flex items-center gap-2 pt-1">
           <input type="checkbox" id="saveCredentials" checked class="accent-black w-4 h-4 border-2 border-black rounded">
-          <span class="text-xs text-gray-600 font-semibold tracking-wide">Remember robot configurations</span>
+          <span class="text-xs text-gray-600 font-semibold tracking-wide">Remember configurations</span>
         </div>
       </div>
 
@@ -142,9 +142,9 @@
         </div>
 
         <div class="pt-3 border-t border-gray-200">
-          <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Saved Registers (Newest on top)</span>
+          <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Saved Registers</span>
           <div id="savedTextsList" class="space-y-2 max-h-36 overflow-y-auto pr-1">
-            <div class="text-xs text-gray-400 italic py-1">Initializing registry buffers...</div>
+            <div class="text-xs text-gray-400 italic py-1">Initializing registries...</div>
           </div>
         </div>
       </div>
@@ -153,7 +153,7 @@
     <div class="retro-panel rounded-xl p-6">
       <div class="flex items-center justify-between mb-3">
         <span class="text-xs text-black font-bold uppercase tracking-widest block retro-heading">Location Coordinate Stream</span>
-        <button id="gpsBtn" class="text-[10px] font-bold uppercase border-2 border-black bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-md tracking-wider transition">
+        <button id="gpsBtn" class="text-[10px] font-bold uppercase border-2 border-black bg-gray-50 px-3 py-1 rounded-md tracking-wider">
           Sync Stream
         </button>
       </div>
@@ -206,22 +206,19 @@
             itemEl.className = "flex items-center justify-between bg-gray-50 border-2 border-black rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-100 transition-all";
             itemEl.innerHTML = `
               <span class="text-xs font-bold truncate flex-grow mr-2 text-black tracking-wide">${item.text}</span>
-              <button class="local-delete-btn text-gray-400 hover:text-red-600 p-1 font-bold text-sm transition-colors" data-id="${item.id}">
-                &times;
-              </button>
+              <button class="local-delete-btn text-gray-400 hover:text-red-600 p-1 font-bold text-sm" data-id="${item.id}">&times;</button>
             `;
             
             itemEl.addEventListener('click', (e) => {
               if (e.target.classList.contains('local-delete-btn')) return;
               document.getElementById('customOledText').value = item.text;
-              window.showToast("STAGED", "Loaded to transmission register.");
+              window.showToast("STAGED", "Loaded to transmission buffer.");
               if (window.sendSyncPacket) window.sendSyncPacket();
             });
 
             itemEl.querySelector('.local-delete-btn').addEventListener('click', (e) => {
               e.stopPropagation();
-              const targetId = e.currentTarget.getAttribute('data-id');
-              deleteLocalAndRemoteMessage(targetId);
+              deleteLocalAndRemoteMessage(e.currentTarget.getAttribute('data-id'));
             });
 
             listContainer.appendChild(itemEl);
@@ -230,18 +227,6 @@
         }
       }
       listContainer.innerHTML = `<div class="text-xs text-gray-400 italic py-1">No saved records.</div>`;
-    }
-
-    function autoStageNewestMessage() {
-      const cached = localStorage.getItem('mochi_text_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.length > 0) {
-          parsed.sort((a, b) => b.createdAt - a.createdAt);
-          document.getElementById('customOledText').value = parsed[0].text;
-          if (window.sendSyncPacket) window.sendSyncPacket();
-        }
-      }
     }
 
     async function deleteLocalAndRemoteMessage(msgId) {
@@ -254,11 +239,10 @@
         const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts', msgId);
         try { await deleteDoc(docRef); } catch (err) {}
       }
-      window.showToast("REMOVED", "Message register cleared.");
+      window.showToast("REMOVED", "Message index cleared.");
     }
 
     window.renderLocalSavedTexts();
-    autoStageNewestMessage();
 
     const initAuthAndObserver = async () => {
       try {
@@ -267,14 +251,11 @@
         } else {
           await signInAnonymously(auth);
         }
-
         onAuthStateChanged(auth, (user) => {
           currentUser = user;
           if (user) setupSavedTextsListener(user.uid);
         });
-      } catch (authError) {
-        console.error("Auth Engine Fault:", authError);
-      }
+      } catch (e) {}
     };
 
     initAuthAndObserver();
@@ -292,16 +273,13 @@
           window.renderLocalSavedTexts();
           return;
         }
-
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
           localItems.push({ id: docSnap.id, text: data.text, createdAt: data.createdAt || Date.now() });
         });
-
         localStorage.setItem('mochi_text_cache', JSON.stringify(localItems));
         window.renderLocalSavedTexts();
-        autoStageNewestMessage();
-      }, (error) => {
+      }, () => {
         window.renderLocalSavedTexts();
       });
     }
@@ -325,7 +303,7 @@
       const collectionRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
       try {
         await addDoc(collectionRef, { text: textToSave, createdAt: entryTimestamp });
-        window.showToast("REGISTERED", "Saved & Synced!");
+        window.showToast("REGISTERED", "Saved to Cloud!");
       } catch (err) {}
     });
   </script>
@@ -374,11 +352,10 @@
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
         isCapacitorActive = true;
         runtimeEngineText.textContent = "Capacitor Native Stack Running";
-        
         const lastPairedMAC = localStorage.getItem('mochi_paired_mac');
         const lastPairedName = localStorage.getItem('mochi_paired_name') || "M-BUDDY";
         if (lastPairedMAC) {
-          showToast("RECONNECTING", "Re-establishing hardware handshake link...");
+          showToast("RECONNECTING", "Re-establishing hardware link...");
           executeAutomaticBackgroundReconnect(lastPairedMAC, lastPairedName);
         }
       } else {
@@ -403,8 +380,9 @@
         connectionState.textContent = "LINKING...";
         await Ble.connect({ deviceId: macAddress, timeout: 10000 });
         
-        await new Promise(r => setTimeout(r, 1200));
+        await new Promise(r => setTimeout(r, 1000));
         
+        // Pass code authorization
         const handshakeToken = `AUTH:${pinCode}|Handset`;
         await Ble.write({
           deviceId: macAddress,
@@ -416,7 +394,6 @@
         bluetoothDevice = { deviceId: macAddress, name: savedName };
         finalizeConnectionUI(savedName);
       } catch (e) {
-        console.error("Auto recovery dropped:", e);
         onDisconnected();
       }
     }
@@ -434,32 +411,23 @@
       try {
         connectionState.textContent = "INITIALIZING...";
         await Ble.initialize();
-        
         connectionState.textContent = "SCANNING...";
         
         let scanFilters = [];
-        if (rawSuffix) {
-          scanFilters.push({ name: `M-Buddy_${rawSuffix}` });
-        } else {
-          scanFilters.push({ namePrefix: 'M-Buddy' });
-        }
+        if (rawSuffix) scanFilters.push({ name: `M-Buddy_${rawSuffix}` });
+        else scanFilters.push({ namePrefix: 'M-Buddy' });
 
-        const device = await Ble.requestDevice({
-          filters: scanFilters,
-          scanMode: 2
-        });
-
+        const device = await Ble.requestDevice({ filters: scanFilters, scanMode: 2 });
         if (!device || !device.deviceId) {
           onDisconnected();
           return;
         }
 
         const finalCalculatedName = device.name || `M-Buddy_${rawSuffix}` || "M-BUDDY";
-
         connectionState.textContent = "BONDING...";
         await Ble.connect({ deviceId: device.deviceId, timeout: 12000 });
         
-        await new Promise(r => setTimeout(r, 1200));
+        await new Promise(r => setTimeout(r, 1000));
         connectionState.textContent = "AUTHENTICATING...";
         
         const handshakeToken = `AUTH:${pinCode}|Handset`;
@@ -488,6 +456,9 @@
       pingLabel.className = "text-[10px] font-bold tracking-wider uppercase text-green-700";
       connectBtn.textContent = "Disconnect Robot";
       unpairBtn.classList.remove('hidden');
+      
+      // NOTICE: CMD:DASHBOARD HAS BEEN COMPLETELY REMOVED FROM HERE!
+      // The app will now safely stream without hijacking your robot's current mode.
       startAutomaticSync();
     }
 
@@ -516,7 +487,6 @@
     }
 
     async function sendCommand(command) {
-      const hexEncoded = stringToHex(command);
       if (isCapacitorActive) {
         if (!bluetoothDevice) return;
         try {
@@ -524,7 +494,7 @@
             deviceId: bluetoothDevice.deviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: hexEncoded
+            value: stringToHex(command)
           });
         } catch (err) {}
       } else {
@@ -566,22 +536,19 @@
         window.sendSyncPacket();
       }, () => { window.sendSyncPacket(); });
 
-      // Live loop tracking
-      gpsInterval = setInterval(window.sendSyncPacket, 2500);
+      gpsInterval = setInterval(window.sendSyncPacket, 3000);
     }
 
     window.sendSyncPacket = function() {
+      if (!bluetoothDevice && !rxCharacteristic) return;
       const now = new Date();
       const hrs = String(now.getHours()).padStart(2, '0');
       const mins = String(now.getMinutes()).padStart(2, '0');
       
-      // CRITICAL DATA FIX: Enforce fallback text value string to satisfy ESP32 line 363 requirements
       let customText = customOledTextInput.value.trim();
-      if (!customText) {
-        customText = "None";
-      }
+      if (!customText) customText = "None";
       
-      // Strict packet syntax matching ESP32 firmware constraints
+      // Packs the background dashboard message string safely
       const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
     }
@@ -596,6 +563,7 @@
       if (gpsInterval) clearInterval(gpsInterval);
       gpsInterval = null;
       bluetoothDevice = null;
+      rxCharacteristic = null;
     }
 
     setInterval(() => {
