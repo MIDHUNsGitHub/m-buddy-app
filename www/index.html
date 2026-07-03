@@ -368,77 +368,53 @@
     });
 
     // Web Auto-Connect pipeline
- async function handleCapacitorConnect() {
-      const Ble = window.Capacitor.Plugins.BluetoothLe;
-      
-      const rawSuffix = inputMochiID.value.trim().toUpperCase();
-      const pinCode = inputMochiPIN.value.trim() || "1234";
+ async function handleCapacitorLink() {
+  const Ble = window.Capacitor.Plugins.BluetoothLe;
+  const targetPin = inputMochiPIN.value.trim() || "1234";
 
-      if (saveCheck.checked) {
-        localStorage.setItem('mochi_device_id', rawSuffix);
-        localStorage.setItem('mochi_device_pin', pinCode);
-      }
+  try {
+    connectionState.textContent = "INITIALIZING...";
+    
+    // CRITICAL REPAIR STAGE: Initialize with explicit Android Location safety override
+    await Ble.initialize({ androidNeverForLocation: true });
+    
+    connectionState.textContent = "SCANNING...";
+    const device = await Ble.requestDevice({ serviceUUIDs: [SERVICE_UUID] });
 
-      try {
-        connectionState.textContent = "INITIALIZING BLE...";
-        await Ble.initialize();
-        
-        connectionState.textContent = "SCANNING...";
-        const device = await Ble.requestDevice({
-          serviceUUIDs: [SERVICE_UUID]
-        });
+    if (!device || !device.deviceId) { onDisconnected(); return; }
 
-        if (!device || !device.deviceId) {
-          throw new Error("No device selected.");
-        }
+    connectionState.textContent = "CONNECTING...";
+    await Ble.connect({ deviceId: device.deviceId, timeout: 10000 });
+    
+    // Let hardware internal caches rest
+    await new Promise(r => setTimeout(r, 800));
 
-        connectionState.textContent = "CONNECTING...";
-        await Ble.connect({ 
-          deviceId: device.deviceId,
-          timeout: 10000 
-        });
-        
-        connectionState.textContent = "AUTHENTICATING...";
-        
-        // FIXED: Safe array allocation that works flawlessly with Android hardware memory
-        const encoder = new TextEncoder();
-        const dataBytes = encoder.encode(`AUTH:${pinCode}`);
-        let binaryString = '';
-        for (let i = 0; i < dataBytes.length; i++) {
-          binaryString += String.fromCharCode(dataBytes[i]);
-        }
-        const secureBase64Value = btoa(binaryString);
+    connectionState.textContent = "AUTHENTICATING...";
+    
+    const payloadStr = `AUTH:${targetPin}`;
+    const encodedValue = cleanToBase64(payloadStr);
 
-        await Ble.write({
-          deviceId: device.deviceId,
-          service: SERVICE_UUID,
-          characteristic: CHARACTERISTIC_UUID,
-          value: secureBase64Value
-        });
+    await Ble.write({
+      deviceId: device.deviceId,
+      service: SERVICE_UUID,
+      characteristic: CHARACTERISTIC_UUID,
+      value: encodedValue
+    });
 
-        bluetoothDevice = { deviceId: device.deviceId, name: device.name || "M-Buddy Sync" };
-        
-        localStorage.setItem('mochi_paired_address', device.deviceId);
+    bluetoothDevice = device;
+    connectionState.textContent = (device.name || "M-BUDDY").toUpperCase();
+    connectionState.className = "text-2xl font-bold futuristic-title mt-1 text-green-400";
+    pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
+    pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
+    connectBtn.textContent = "Disconnect Link";
+    showToast("SUCCESS", "Directly linked over hardware channels.");
 
-        connectionState.textContent = bluetoothDevice.name;
-        connectionState.classList.add('text-green-400');
-        pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
-        pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
-        connectBtn.textContent = "Securely Disconnect";
-        connectBtn.classList.replace('from-purple-600', 'from-red-600');
-        connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
-        unpairBtn.classList.remove('hidden');
-
-        showToast("SECURE PAIR COMPLETED", "Robot unlocked and fully synchronized!");
-        
-        // Auto-engage telemetry streams safely
-        startAutomaticSync();
-      } catch (err) {
-        console.error("Capacitor Native BLE Error: ", err);
-        showToast("NATIVE BLE ERROR", err.message || "Connection handshake failed.", true);
-        onDisconnected();
-      }
-    }
+  } catch (err) {
+    console.error("Safely captured native error:", err);
+    showToast("LINK FAILURE", err.message || "Write request timed out.", true);
+    onDisconnected();
+  }
+}
 
     // Native Capacitor Background Auto-Reconnect Scanner
     function startNativeAutoReconnectLoop(targetAddress) {
