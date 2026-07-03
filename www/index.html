@@ -3,147 +3,170 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>M-Buddy Companion Control</title>
+  <title>M-Buddy Retro System Link</title>
   
   <script src="capacitor.js"></script>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght=400;700;900&family=Rajdhani:wght=500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
   <style>
     body {
-      font-family: 'Rajdhani', sans-serif;
-      background: radial-gradient(circle at center, #1b0a2a, #0c0414);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #EAECF0;
+      color: #000000;
     }
-    .futuristic-title {
-      font-family: 'Orbitron', sans-serif;
+    .retro-heading {
+      font-family: 'Space Grotesk', sans-serif;
+      color: #233D4D;
+    }
+    .retro-panel {
+      background-color: #FFFFFF;
+      border: 2px solid #000000;
+      box-shadow: 4px 4px 0px #000000;
+    }
+    .retro-btn-orange {
+      background-color: #FE7F2D;
+      color: #FFFFFF;
+      border: 2px solid #000000;
+      box-shadow: 3px 3px 0px #000000;
+    }
+    .retro-btn-orange:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #000000;
+    }
+    .retro-input {
+      background-color: #F8F9FA;
+      border: 2px solid #000000;
+      color: #000000;
+    }
+    .retro-input:focus {
+      outline: none;
+      border-color: #FE7F2D;
     }
     ::-webkit-scrollbar {
       display: none;
     }
   </style>
 </head>
-<body class="text-white min-h-screen p-4 flex flex-col justify-between selection:bg-purple-500 selection:text-white relative">
+<body class="min-h-screen p-5 flex flex-col justify-between relative select-none">
 
   <div id="toastContainer" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none transition-all duration-300 transform -translate-y-10 opacity-0">
-    <div class="bg-purple-950/90 border border-purple-500/40 rounded-2xl p-4 shadow-[0_0_30px_rgba(168,85,247,0.3)] backdrop-blur-xl flex items-center gap-3">
-      <div id="toastIcon" class="w-8 h-8 rounded-full flex items-center justify-center bg-purple-500/20 text-purple-400"></div>
+    <div class="bg-white border-2 border-black p-4 shadow-[4px_4px_0px_#000000] flex items-center gap-3">
+      <div id="toastIcon" class="w-6 h-6 flex items-center justify-center font-bold text-sm border border-black"></div>
       <div>
-        <p id="toastTitle" class="font-bold text-sm tracking-wide futuristic-title text-purple-300">SYSTEM NOTIFICATION</p>
-        <p id="toastMessage" class="text-xs text-gray-300 mt-0.5">Notification description details.</p>
+        <p id="toastTitle" class="font-bold text-xs tracking-wider uppercase retro-heading">SYSTEM</p>
+        <p id="toastMessage" class="text-xs text-gray-700 mt-0.5">Details.</p>
       </div>
     </div>
   </div>
 
-  <header class="text-center py-4 border-b border-purple-900/40">
-    <h1 class="futuristic-title text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-indigo-400">
-      M-BUDDY
-    </h1>
-    <p class="text-xs text-purple-400/80 tracking-widest uppercase mt-1">Smart Companion System Link</p>
+  <header class="text-left max-w-md mx-auto w-full pt-4 border-b-2 border-black pb-4">
+    <div class="flex justify-between items-baseline">
+      <h1 class="retro-heading text-3xl font-black tracking-tight">M-BUDDY</h1>
+      <span class="text-xs font-bold uppercase tracking-widest bg-black text-white px-2 py-0.5">SYS.LINK.012</span>
+    </div>
+    <p class="text-xs text-gray-600 font-semibold tracking-wide uppercase mt-1">Companion Control Terminal</p>
   </header>
 
   <main class="max-w-md mx-auto w-full flex-grow flex flex-col justify-center gap-6 py-6">
 
-    <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-xl shadow-[0_0_50px_rgba(168,85,247,0.05)]">
-      <div class="flex items-center justify-between border-b border-purple-900/40 pb-4">
+    <div class="retro-panel rounded-xl p-6">
+      <div class="flex items-start justify-between border-b-2 border-dashed border-gray-300 pb-4">
         <div>
-          <span class="text-xs text-purple-400 uppercase tracking-widest">Link Status</span>
-          <h2 id="connectionState" class="text-2xl font-bold text-gray-400 futuristic-title mt-1">DISCONNECTED</h2>
-          <span id="runtimeEngine" class="text-[10px] text-purple-400/60 uppercase tracking-wider block mt-1">Detecting Engine...</span>
+          <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Hardware State</span>
+          <h2 id="connectionState" class="text-2xl font-black tracking-tight retro-heading mt-0.5">DISCONNECTED</h2>
+          <span id="runtimeEngine" class="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1">Init Engine</span>
         </div>
-        <div class="relative flex h-4 w-4">
-          <span id="pingRing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          <span id="pingDot" class="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
+        <div class="flex items-center gap-1.5 border-2 border-black px-2 py-1 bg-gray-50">
+          <div id="pingDot" class="w-3 h-3 bg-red-500 rounded-full border border-black"></div>
+          <span id="pingLabel" class="text-[10px] font-bold tracking-wider uppercase text-gray-700">OFFLINE</span>
         </div>
       </div>
 
       <div class="mt-4 space-y-3">
-        <label class="block text-xs uppercase tracking-widest text-purple-400">Device Secure ID Lock</label>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-4">
           <div>
-            <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">M-Buddy Suffix (e.g. B94F)</span>
-            <input type="text" id="mochiID" maxlength="4" placeholder="Any" class="w-full bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-2 text-center futuristic-title font-bold tracking-widest text-white uppercase focus:outline-none focus:border-purple-400">
+            <label class="text-[11px] text-black font-bold uppercase tracking-wider block mb-1">Robot Suffix</label>
+            <input type="text" id="mochiID" maxlength="4" placeholder="Any" class="retro-input w-full rounded-lg px-3 py-2 text-center text-sm font-bold uppercase tracking-widest">
           </div>
           <div>
-            <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Security PIN (Passkey)</span>
-            <input type="password" id="mochiPIN" maxlength="4" placeholder="1234" class="w-full bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-2 text-center futuristic-title font-bold tracking-widest text-white focus:outline-none focus:border-purple-400">
+            <label class="text-[11px] text-black font-bold uppercase tracking-wider block mb-1">Passkey PIN</label>
+            <input type="password" id="mochiPIN" maxlength="4" placeholder="1234" class="retro-input w-full rounded-lg px-3 py-2 text-center text-sm font-bold tracking-widest">
           </div>
         </div>
-        <div class="flex items-center gap-2 mt-2">
-          <input type="checkbox" id="saveCredentials" checked class="accent-purple-500 rounded">
-          <span class="text-xs text-purple-400/80 tracking-wider">Save credentials for automatic background link</span>
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="saveCredentials" checked class="accent-black w-4 h-4 border-2 border-black rounded">
+          <span class="text-xs text-gray-600 font-semibold tracking-wide">Remember robot configurations</span>
         </div>
       </div>
 
       <div class="grid grid-cols-1 gap-3 mt-6">
-        <button id="connectBtn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 transition-all rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm shadow-lg shadow-purple-500/20">
-          Search & Authenticate
+        <button id="connectBtn" class="retro-btn-orange w-full py-3.5 rounded-xl font-bold tracking-wider uppercase text-sm transition-all">
+          Search & Connect
         </button>
-        <button id="unpairBtn" class="hidden w-full py-3 bg-red-950/30 border border-red-500/30 hover:bg-red-950/60 active:scale-95 transition-all rounded-2xl font-bold tracking-widest uppercase futuristic-title text-xs text-red-400">
-          Forget & Unpair Robot
+        <button id="unpairBtn" class="hidden w-full py-2 bg-gray-100 hover:bg-gray-200 text-red-600 font-bold tracking-wider uppercase text-xs border-2 border-black rounded-xl transition-all">
+          Forget Pair Memory
         </button>
       </div>
     </div>
 
     <div class="grid grid-cols-2 gap-4">
-      <div class="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-4 flex flex-col justify-between">
-        <span class="text-xs text-purple-400 uppercase tracking-widest">Live Weather</span>
-        <div class="my-4 text-center">
-          <span id="appWeather" class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-purple-300 futuristic-title">--</span>
-          <span class="text-xs text-purple-400 block mt-1">Status Sync</span>
+      <div class="retro-panel rounded-xl p-4 flex flex-col justify-between">
+        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Telemetry Environment</span>
+        <div class="my-3">
+          <span id="appWeather" class="text-xl font-black retro-heading tracking-tight">--</span>
+          <span class="text-[10px] text-gray-500 block font-semibold mt-0.5">METRIC SYNC</span>
         </div>
       </div>
 
-      <div class="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-4 flex flex-col justify-between">
-        <span class="text-xs text-purple-400 uppercase tracking-widest">Phone Time</span>
-        <div class="my-4 text-center">
-          <span id="appTime" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-purple-300 futuristic-title">--:--</span>
-          <span class="text-xs text-purple-400 block mt-1">Synced to M-Buddy</span>
+      <div class="retro-panel rounded-xl p-4 flex flex-col justify-between">
+        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">System Chrono</span>
+        <div class="my-3">
+          <span id="appTime" class="text-2xl font-black retro-heading tracking-tight">--:--</span>
+          <span class="text-[10px] text-gray-500 block font-semibold mt-0.5">LOCAL HOST TIME</span>
         </div>
       </div>
     </div>
 
-    <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6 space-y-4">
-      <span class="text-xs text-purple-400 uppercase tracking-widest block">Custom OLED Text Display</span>
+    <div class="retro-panel rounded-xl p-6 space-y-4">
+      <span class="text-xs text-black font-bold uppercase tracking-widest block retro-heading">OLED Custom Message Queue</span>
       <div class="space-y-4">
         <div class="flex gap-2">
           <div class="flex-grow">
-            <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Enter Custom Message</span>
-            <input type="text" id="customOledText" maxlength="15" placeholder="e.g., Hello Human!" class="w-full bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 futuristic-title">
+            <input type="text" id="customOledText" maxlength="15" placeholder="Type message..." class="retro-input w-full rounded-lg px-3 py-2 text-sm font-medium tracking-wide">
           </div>
-          <button id="saveTextBtn" class="self-end px-4 py-2 bg-purple-600 hover:bg-purple-500 active:scale-95 transition-all rounded-xl font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-1.5 h-[38px]">
-            <span>Save</span>
+          <button id="saveTextBtn" class="retro-btn-orange px-4 py-2 rounded-lg font-bold tracking-wider uppercase text-xs transition-all flex items-center justify-center h-[38px]">
+            Save
           </button>
         </div>
 
-        <div class="pt-3 border-t border-purple-950/40">
-          <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-2">Saved Messages (Click to load & sync)</span>
+        <div class="pt-3 border-t border-gray-200">
+          <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Saved Registers (Newest on top)</span>
           <div id="savedTextsList" class="space-y-2 max-h-36 overflow-y-auto pr-1">
-            <div class="text-xs text-gray-500 italic py-1">Connecting to data vault...</div>
+            <div class="text-xs text-gray-400 italic py-1">Initializing registry buffers...</div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6">
-      <div class="flex items-center justify-between mb-4">
-        <span class="text-xs text-purple-400 uppercase tracking-widest">Live Location Name</span>
-        <button id="gpsBtn" class="text-xs bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 px-3 py-1 rounded-full uppercase tracking-wider text-purple-300 transition">
-          Start Sync Stream
+    <div class="retro-panel rounded-xl p-6">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs text-black font-bold uppercase tracking-widest block retro-heading">Location Coordinate Stream</span>
+        <button id="gpsBtn" class="text-[10px] font-bold uppercase border-2 border-black bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-md tracking-wider transition">
+          Sync Stream
         </button>
       </div>
-
-      <div class="space-y-3">
-        <div class="flex justify-between border-b border-purple-950/40 pb-2">
-          <span class="text-gray-400">Detected City:</span>
-          <span id="appCity" class="font-bold futuristic-title">None</span>
-        </div>
+      <div class="flex justify-between items-center bg-gray-50 border-2 border-black p-3 rounded-lg">
+        <span class="text-xs font-bold text-gray-600 uppercase">Target Node:</span>
+        <span id="appCity" class="font-black text-sm text-black retro-heading">None</span>
       </div>
     </div>
 
   </main>
 
-  <footer class="text-center py-4 text-xs text-purple-400/40">
-    M-Buddy Companion System &copy; 2026
+  <footer class="text-center py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+    M-Buddy Hardware Project &copy; 2026
   </footer>
 
   <script type="module">
@@ -169,32 +192,32 @@
     let currentUser = null;
     let savedTextsUnsubscribe = null;
 
-    // Load messages from local device memory sorted by timestamp (newest first)
+    // Renders custom lists ordered newest message at the top
     window.renderLocalSavedTexts = function() {
       const listContainer = document.getElementById('savedTextsList');
       const cached = localStorage.getItem('mochi_text_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
-        // Sort newest first
+        // FORCE NEWEST AT TOP
         parsed.sort((a, b) => b.createdAt - a.createdAt);
         
         if (parsed.length > 0) {
           listContainer.innerHTML = '';
           parsed.forEach((item) => {
             const itemEl = document.createElement('div');
-            itemEl.className = "flex items-center justify-between bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/10 rounded-xl px-3 py-2 cursor-pointer transition active:scale-[0.98]";
+            itemEl.className = "flex items-center justify-between bg-gray-50 border-2 border-black rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-100 transition-all";
             itemEl.innerHTML = `
-              <span class="text-xs font-bold tracking-wider truncate flex-grow mr-2 text-purple-200 futuristic-title">${item.text}</span>
-              <button class="local-delete-btn text-purple-400/40 hover:text-red-400 p-1 transition" data-id="${item.id}">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
+              <span class="text-xs font-bold truncate flex-grow mr-2 text-black tracking-wide">${item.text}</span>
+              <button class="local-delete-btn text-gray-400 hover:text-red-600 p-1 font-bold text-sm transition-colors" data-id="${item.id}">
+                &times;
               </button>
             `;
             
-            itemEl.addEventListener('click', () => {
+            itemEl.addEventListener('click', (e) => {
+              if (e.target.classList.contains('local-delete-btn')) return;
               document.getElementById('customOledText').value = item.text;
-              if (window.sendSyncPacket) window.sendSyncPacket(); // Instantly push text value to the screen
+              window.showToast("STAGED", "Loaded to transmission register.");
+              if (window.sendSyncPacket) window.sendSyncPacket(); // Auto-sync immediately upon select!
             });
 
             itemEl.querySelector('.local-delete-btn').addEventListener('click', (e) => {
@@ -208,39 +231,36 @@
           return;
         }
       }
-      listContainer.innerHTML = `<div class="text-xs text-gray-500 italic py-1">No saved messages yet.</div>`;
+      listContainer.innerHTML = `<div class="text-xs text-gray-400 italic py-1">No saved records.</div>`;
     }
 
-    // Instantly loads newest cached message to input box to prepare for automatic broadcast
-    function stageLatestMessageToInput() {
+    function autoStageNewestMessage() {
       const cached = localStorage.getItem('mochi_text_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed.length > 0) {
           parsed.sort((a, b) => b.createdAt - a.createdAt);
           document.getElementById('customOledText').value = parsed[0].text;
+          if (window.sendSyncPacket) window.sendSyncPacket(); // Auto-sync on startup!
         }
       }
     }
 
     async function deleteLocalAndRemoteMessage(msgId) {
-      // 1. Remove from local mirror
       let cached = localStorage.getItem('mochi_text_cache') ? JSON.parse(localStorage.getItem('mochi_text_cache')) : [];
       cached = cached.filter(item => item.id !== msgId);
       localStorage.setItem('mochi_text_cache', JSON.stringify(cached));
       window.renderLocalSavedTexts();
 
-      // 2. Clear remote Firestore item if user profile session matches
       if (currentUser && !msgId.startsWith('temp_')) {
         const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts', msgId);
         try { await deleteDoc(docRef); } catch (err) {}
       }
-      window.showToast("DELETED", "Message cleared from vault.");
+      window.showToast("REMOVED", "Message register cleared.");
     }
 
-    // Init display instantly
     window.renderLocalSavedTexts();
-    stageLatestMessageToInput();
+    autoStageNewestMessage();
 
     const initAuthAndObserver = async () => {
       try {
@@ -255,7 +275,7 @@
           if (user) setupSavedTextsListener(user.uid);
         });
       } catch (authError) {
-        console.error("Firebase Auth failed:", authError);
+        console.error("Auth Engine Fault:", authError);
       }
     };
 
@@ -266,7 +286,7 @@
       if (savedTextsUnsubscribe) savedTextsUnsubscribe();
 
       const collectionRef = collection(db, 'artifacts', appId, 'users', userId, 'saved_texts');
-      const sortedQuery = query(collectionRef, orderBy('createdAt', 'desc')); // Pushes newest to top
+      const sortedQuery = query(collectionRef, orderBy('createdAt', 'desc'));
       
       savedTextsUnsubscribe = onSnapshot(sortedQuery, (snapshot) => {
         const localItems = [];
@@ -282,7 +302,7 @@
 
         localStorage.setItem('mochi_text_cache', JSON.stringify(localItems));
         window.renderLocalSavedTexts();
-        stageLatestMessageToInput();
+        autoStageNewestMessage();
       }, (error) => {
         window.renderLocalSavedTexts();
       });
@@ -296,26 +316,24 @@
       const entryTimestamp = Date.now();
       const uniqueTempId = 'temp_' + entryTimestamp;
 
-      // Optimistic layout generation: Push to top instantly
       const cached = localStorage.getItem('mochi_text_cache') ? JSON.parse(localStorage.getItem('mochi_text_cache')) : [];
       cached.push({ id: uniqueTempId, text: textToSave, createdAt: entryTimestamp });
       localStorage.setItem('mochi_text_cache', JSON.stringify(cached));
       window.renderLocalSavedTexts();
 
-      // Push to the device instantly via active BLE stream
+      // Send to the robot immediately!
       if (window.sendSyncPacket) window.sendSyncPacket();
 
       if (!currentUser) return;
       const collectionRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
       try {
         await addDoc(collectionRef, { text: textToSave, createdAt: entryTimestamp });
-        window.showToast("SAVED", "Message pinned to top!");
+        window.showToast("REGISTERED", "Saved & Synced!");
       } catch (err) {}
     });
   </script>
 
   <script>
-    // System UUID parameters matching your ESP32 configurations
     const SERVICE_UUID        = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
     const CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 
@@ -325,13 +343,13 @@
     let isCapacitorActive = false;
 
     let cityName = "Kochi";
-    let weatherDetails = "Cloudy 29C";
+    let weatherDetails = "Sunny 29C";
 
     const connectBtn = document.getElementById('connectBtn');
     const unpairBtn = document.getElementById('unpairBtn');
     const connectionState = document.getElementById('connectionState');
-    const pingRing = document.getElementById('pingRing');
     const pingDot = document.getElementById('pingDot');
+    const pingLabel = document.getElementById('pingLabel');
     const gpsBtn = document.getElementById('gpsBtn');
     const inputMochiID = document.getElementById('mochiID');
     const inputMochiPIN = document.getElementById('mochiPIN');
@@ -339,7 +357,6 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // Convert values into standard lowercase hex streams so the ESP32 registers them cleanly
     function stringToHex(str) {
       const encoder = new TextEncoder();
       const view = encoder.encode(str);
@@ -359,18 +376,18 @@
 
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
         isCapacitorActive = true;
-        runtimeEngineText.textContent = "Capacitor Native Engine Active";
-        runtimeEngineText.className = "text-[10px] text-green-400 font-bold uppercase tracking-wider block mt-1";
+        runtimeEngineText.textContent = "Capacitor Native Stack Running";
         
-        // AUTO-RECONNECT FLOW: Fires background handler on launch if paired MAC is saved
+        // AUTO-RECONNECT FLOW
         const lastPairedMAC = localStorage.getItem('mochi_paired_mac');
+        const lastPairedName = localStorage.getItem('mochi_paired_name') || "M-BUDDY";
         if (lastPairedMAC) {
-          showToast("RECONNECTING", "Re-binding automatic background link...");
-          executeAutomaticBackgroundReconnect(lastPairedMAC);
+          showToast("RECONNECTING", "Re-establishing hardware handshake link...");
+          executeAutomaticBackgroundReconnect(lastPairedMAC, lastPairedName);
         }
       } else {
         isCapacitorActive = false;
-        runtimeEngineText.textContent = "Web Bluetooth Engine Active";
+        runtimeEngineText.textContent = "Web Engine Mode";
       }
     });
 
@@ -382,31 +399,29 @@
       }
     });
 
-    async function executeAutomaticBackgroundReconnect(macAddress) {
+    async function executeAutomaticBackgroundReconnect(macAddress, savedName) {
       const Ble = window.Capacitor.Plugins.BluetoothLe;
       const pinCode = inputMochiPIN.value.trim() || "1234";
       try {
         await Ble.initialize();
-        connectionState.textContent = "AUTO RECONNECTING...";
+        connectionState.textContent = "LINKING...";
         await Ble.connect({ deviceId: macAddress, timeout: 10000 });
         
         await new Promise(r => setTimeout(r, 1200));
         
-        // CRITICAL SYNC FIX: Formats the command to match the ESP32's AUTH requirements ("AUTH:PIN|Device_Name")
-        const handshakeToken = `AUTH:${pinCode}|CompanionApp`;
-        const hexValue = stringToHex(handshakeToken);
-        
+        // HANDSHAKE FIXED PAYLOAD: Passing the required pipe "|" + Handset tag matching the ESP32 constraints
+        const handshakeToken = `AUTH:${pinCode}|Handset`;
         await Ble.write({
           deviceId: macAddress,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: hexValue
+          value: stringToHex(handshakeToken)
         });
 
-        bluetoothDevice = { deviceId: macAddress, name: "M-BUDDY" };
-        finalizeConnectionUI("M-BUDDY");
+        bluetoothDevice = { deviceId: macAddress, name: savedName };
+        finalizeConnectionUI(savedName);
       } catch (e) {
-        console.error("Auto reconnect handshake failed:", e);
+        console.error("Auto recovery dropped:", e);
         onDisconnected();
       }
     }
@@ -425,9 +440,9 @@
         connectionState.textContent = "INITIALIZING...";
         await Ble.initialize();
         
-        connectionState.textContent = "FILTERING SCAN...";
+        connectionState.textContent = "SCANNING...";
         
-        // PREFIX FILTER ENFORCEMENT: Restricts the display strictly to names starting with "M-Buddy"
+        // ENFORCED HARDWARE FILTER BOUNDARY: Hides all generic ambient devices
         let scanFilters = [];
         if (rawSuffix) {
           scanFilters.push({ name: `M-Buddy_${rawSuffix}` });
@@ -445,39 +460,39 @@
           return;
         }
 
-        connectionState.textContent = "PAIRING LINK...";
+        const finalCalculatedName = device.name || `M-Buddy_${rawSuffix}` || "M-BUDDY";
+
+        connectionState.textContent = "BONDING...";
         await Ble.connect({ deviceId: device.deviceId, timeout: 12000 });
         
         await new Promise(r => setTimeout(r, 1200));
         connectionState.textContent = "AUTHENTICATING...";
         
-        // Structured pipe payload to clear the microcontroller's incoming string constraints
-        const handshakeToken = `AUTH:${pinCode}|CompanionApp`;
-        const hexValue = stringToHex(handshakeToken);
-        
+        const handshakeToken = `AUTH:${pinCode}|Handset`;
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: hexValue
+          value: stringToHex(handshakeToken)
         });
 
-        bluetoothDevice = { deviceId: device.deviceId, name: device.name || "M-BUDDY" };
+        bluetoothDevice = { deviceId: device.deviceId, name: finalCalculatedName };
         localStorage.setItem('mochi_paired_mac', device.deviceId);
+        localStorage.setItem('mochi_paired_name', finalCalculatedName); // Retain full custom title segment across app restarts
 
-        finalizeConnectionUI(device.name || "M-BUDDY");
+        finalizeConnectionUI(finalCalculatedName);
       } catch (err) {
-        showToast("LINK FAILURE", "Handshake timed out or rejected.", true);
+        showToast("LINK FAULT", "Handshake timed out.", true);
         onDisconnected();
       }
     }
 
     function finalizeConnectionUI(displayName) {
       connectionState.textContent = displayName.toUpperCase();
-      connectionState.className = "text-2xl font-bold futuristic-title mt-1 text-green-400";
-      pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
-      pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
-      connectBtn.textContent = "Disconnect Link";
+      pingDot.className = "w-3 h-3 bg-green-500 rounded-full border border-black";
+      pingLabel.textContent = "ONLINE";
+      pingLabel.className = "text-[10px] font-bold tracking-wider uppercase text-green-700";
+      connectBtn.textContent = "Disconnect Robot";
       unpairBtn.classList.remove('hidden');
       startAutomaticSync();
     }
@@ -496,7 +511,7 @@
         const service = await server.getPrimaryService(SERVICE_UUID);
         rxCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-        const handshakeToken = `AUTH:${pinCode}|CompanionApp`;
+        const handshakeToken = `AUTH:${pinCode}|Handset`;
         const encoder = new TextEncoder();
         await rxCharacteristic.writeValue(encoder.encode(handshakeToken));
         
@@ -529,6 +544,7 @@
 
     unpairBtn.addEventListener('click', async () => {
       localStorage.removeItem('mochi_paired_mac');
+      localStorage.removeItem('mochi_paired_name');
       localStorage.removeItem('mochi_device_id');
       localStorage.removeItem('mochi_device_pin');
       onDisconnected();
@@ -536,9 +552,8 @@
 
     function startAutomaticSync() {
       if (gpsInterval) clearInterval(gpsInterval);
-      gpsBtn.textContent = "Streaming Telemetry...";
+      gpsBtn.textContent = "Streaming...";
 
-      // Get initial location information
       navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
@@ -557,7 +572,7 @@
         window.sendSyncPacket();
       }, () => { window.sendSyncPacket(); });
 
-      // Continuous loop pushing telemetric packets to the ESP32 dashboard array every 2.5 seconds
+      // Live 2.5 second intervals loop pushing data to your ESP32
       gpsInterval = setInterval(window.sendSyncPacket, 2500);
     }
 
@@ -567,17 +582,17 @@
       const mins = String(now.getMinutes()).padStart(2, '0');
       const customText = customOledTextInput.value.trim() || "None";
       
-      // Matches the ESP32's expected format: "DASH:HH:MM|Location|Weather|CustomText"
+      // DASH:HH:MM|Location|Weather|CustomText -> Handled directly by line 291 of your .ino file
       const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
     }
 
     function onDisconnected() {
       connectionState.textContent = "DISCONNECTED";
-      connectionState.className = "text-gray-400 text-2xl font-bold futuristic-title mt-1";
-      pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-red-500";
-      pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75";
-      connectBtn.textContent = "Search & Authenticate";
+      pingDot.className = "w-3 h-3 bg-red-500 rounded-full border border-black";
+      pingLabel.textContent = "OFFLINE";
+      pingLabel.className = "text-[10px] font-bold tracking-wider uppercase text-gray-700";
+      connectBtn.textContent = "Search & Connect";
       unpairBtn.classList.add('hidden');
       if (gpsInterval) clearInterval(gpsInterval);
       gpsInterval = null;
