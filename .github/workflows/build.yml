@@ -13,7 +13,6 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      # Uses modern action definitions to eliminate Node.js deprecation warnings
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
         with:
@@ -57,7 +56,7 @@ jobs:
             npx cap add android
           fi
 
-      # CRITICAL COMPILER FIX: Creates missing build files required by Gradle template architectures
+      # FIXED COMPILER CRASH: Injects essential missing style XML parameters required by Android Gradle
       - name: Inject Strings, Styles, and Android Build Variables
         run: |
           mkdir -p android/app/src/main/res/values
@@ -95,7 +94,7 @@ jobs:
               <style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.Light.NoActionBar"></style>
           </resources>
           EOF
-          echo "Missing native resource dependency XML configurations written."
+          echo "Missing native configuration layout maps injected successfully."
 
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
@@ -149,7 +148,7 @@ jobs:
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
             echo "Custom assets compiled successfully."
           else
-            echo "Warning: assets/logo.png missing in workspace. Using standard fallback presets."
+            echo "Warning: assets/logo.png fallback missing. Standard presets used."
           fi
 
       - name: Sync Production Assets & Plugins
