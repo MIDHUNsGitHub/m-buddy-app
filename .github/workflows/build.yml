@@ -22,7 +22,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Upgraded to completely remove the deprecation warning
+          node-version: '22' # Suppresses Node 20 deprecation warnings entirely
 
       - name: Autogenerate Clean Base package.json
         run: |
@@ -43,16 +43,16 @@ jobs:
             }
           }
           EOF
-          echo "Base package.json cleanly generated in root folder."
+          echo "Base package.json cleanly generated."
 
-      # CRITICAL FIX STEP: Dynamically builds the missing www directory to prevent initialization crashes
+      # CRITICAL SAFEGUARD: Generates the missing directory to prevent immediate script crashes
       - name: Ensure Web Directory Exists
         run: |
           mkdir -p www
           if [ ! -f "www/index.html" ]; then
             echo "<html><body>M-Buddy Workspace Engine</body></html>" > www/index.html
           fi
-          echo "Web source directory verified."
+          echo "Web directory verified."
 
       - name: Install Project Dependencies
         run: |
@@ -64,7 +64,7 @@ jobs:
           rm -rf android
           npx cap add android
 
-      # STABILITY FIX: Injects missing value tables required by the modern Android compiler
+      # STABILITY FIX: Injects resource tables missing from a raw 'cap add' command
       - name: Inject Baseline Android Build Values
         run: |
           mkdir -p android/app/src/main/res/values
@@ -163,7 +163,7 @@ jobs:
           if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
           else
-            echo "Warning: assets/logo.png missing. Skipping asset compile step."
+            echo "Warning: assets/logo.png missing. Standard presets used."
           fi
 
       - name: Sync Production Assets & Plugins
