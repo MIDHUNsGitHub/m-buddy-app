@@ -24,12 +24,12 @@ jobs:
         with:
           node-version: '22'
 
+      # Forces the app bundle to explicitly package the bluetooth plugin
       - name: Install Project Dependencies
         run: |
           npm install
           npm install @capacitor/android@6.0.0 @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor-community/bluetooth-le@6.0.0
 
-      # FORCED REBUILD: Cleans out any old caching configs to force clean plugin generation
       - name: Recreate Clean Native Architecture
         run: |
           rm -rf android
@@ -84,8 +84,7 @@ jobs:
           </paths>
           EOF
 
-      # PRODUCTION FIX: Inject explicit fine/coarse hardware feature parameters alongside permissions 
-      # This stops Android from killing the app process immediately if background bluetooth is called.
+      # SYSTEM-LEVEL SECURITY FIX: Declares the BLE hardware requirement and allows network bypass flags
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
           cat << 'EOF' > android/app/src/main/AndroidManifest.xml
@@ -143,7 +142,7 @@ jobs:
             echo "Branding graphics skipped."
           fi
 
-      # CRITICAL SAFEGUARD: Explicitly links and updates plugin bridging files inside Java source code
+      # Forcing sync ensures the web dependencies map their bridging hooks cleanly to Java source structures
       - name: Sync Production Assets & Plugins
         run: |
           npx cap update android
