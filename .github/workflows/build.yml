@@ -22,7 +22,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Upgraded to suppress deprecation messages
+          node-version: '22' # Upgraded to completely remove the deprecation warning
 
       - name: Autogenerate Clean Base package.json
         run: |
@@ -45,14 +45,14 @@ jobs:
           EOF
           echo "Base package.json cleanly generated in root folder."
 
-      # CRITICAL FIXED STEP: Prevents Capacitor from crashing when looking for the missing www folder
-      - name: Ensure Production Web Assets Folder Exists
+      # CRITICAL FIX STEP: Dynamically builds the missing www directory to prevent initialization crashes
+      - name: Ensure Web Directory Exists
         run: |
           mkdir -p www
           if [ ! -f "www/index.html" ]; then
-            echo "<html><body>M-Buddy Standalone Context Layer</body></html>" > www/index.html
+            echo "<html><body>M-Buddy Workspace Engine</body></html>" > www/index.html
           fi
-          echo "Web directory validated successfully."
+          echo "Web source directory verified."
 
       - name: Install Project Dependencies
         run: |
@@ -64,8 +64,8 @@ jobs:
           rm -rf android
           npx cap add android
 
-      # FIXED STEP: Injects required native Android configuration parameters before compilation
-      - name: Inject Baseline Android Value Tables
+      # STABILITY FIX: Injects missing value tables required by the modern Android compiler
+      - name: Inject Baseline Android Build Values
         run: |
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/res/xml
@@ -163,7 +163,7 @@ jobs:
           if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
           else
-            echo "Branding folder or assets/logo.png missing in workspace. Using standard presets."
+            echo "Warning: assets/logo.png missing. Skipping asset compile step."
           fi
 
       - name: Sync Production Assets & Plugins
