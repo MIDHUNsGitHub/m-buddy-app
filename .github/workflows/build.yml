@@ -60,6 +60,7 @@ jobs:
       - name: Inject Strings, Styles, and Android Build Variables
         run: |
           mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/xml
           
           cat << 'EOF' > android/variables.gradle
           ext {
@@ -93,6 +94,13 @@ jobs:
               <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar"></style>
               <style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.Light.NoActionBar"></style>
           </resources>
+          EOF
+
+          cat << 'EOF' > android/app/src/main/res/xml/file_paths.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <external-path name="external_files" path="."/>
+          </paths>
           EOF
           echo "Missing native configuration layout maps injected successfully."
 
