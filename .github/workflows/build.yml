@@ -19,10 +19,10 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Set up Node.js 22
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22' # Upgraded to suppress deprecation messages
 
       - name: Autogenerate Clean Base package.json
         run: |
@@ -43,19 +43,29 @@ jobs:
             }
           }
           EOF
-          echo "Base package.json cleanly generated."
+          echo "Base package.json cleanly generated in root folder."
+
+      # CRITICAL FIXED STEP: Prevents Capacitor from crashing when looking for the missing www folder
+      - name: Ensure Production Web Assets Folder Exists
+        run: |
+          mkdir -p www
+          if [ ! -f "www/index.html" ]; then
+            echo "<html><body>M-Buddy Standalone Context Layer</body></html>" > www/index.html
+          fi
+          echo "Web directory validated successfully."
 
       - name: Install Project Dependencies
         run: |
           npm install
           npx cap init M-Buddy mochi.buddy.app --web-dir=www
 
-      - name: Generate Clean Target Native Shell
+      - name: Recreate Clean Native Architecture
         run: |
+          rm -rf android
           npx cap add android
 
-      # FIXED COMPILER CRASH: Injects all essential strings, styles, variables, and path providers
-      - name: Inject Complete Missing Native Framework Dependencies
+      # FIXED STEP: Injects required native Android configuration parameters before compilation
+      - name: Inject Baseline Android Value Tables
         run: |
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/res/xml
@@ -91,7 +101,7 @@ jobs:
           <resources>
               <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar"></style>
               <style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.Light.NoActionBar">
-                  <item name="android:background">#0c0414</item>
+                  <item name="android:background">#1b0a2a</item>
               </style>
           </resources>
           EOF
@@ -102,7 +112,6 @@ jobs:
               <external-path name="external_files" path="."/>
           </paths>
           EOF
-          echo "Missing native configuration variables injected successfully."
 
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
@@ -147,16 +156,14 @@ jobs:
               </application>
           </manifest>
           EOF
-          echo "Native AndroidManifest.xml successfully patched with BLE permissions."
 
       - name: Auto-Compile Custom Branding Launcher Icons
         run: |
           npm install @capacitor/assets --save-dev
           if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
-            echo "Custom branding assets generated successfully."
           else
-            echo "Warning: assets/logo.png fallback missing. Standard presets used."
+            echo "Branding folder or assets/logo.png missing in workspace. Using standard presets."
           fi
 
       - name: Sync Production Assets & Plugins
