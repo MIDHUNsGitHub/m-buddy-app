@@ -34,7 +34,7 @@ jobs:
           rm -rf android
           npx cap add android
 
-      # SELF-HEALING CONFIGURATION: Injects resource parameters missing from standard templates
+      # FIXED STAGE: Added 'coreSplashScreenVersion' to completely satisfy line 37 in build.gradle
       - name: Inject Baseline Android Build Values
         run: |
           mkdir -p android/app/src/main/res/values
@@ -50,6 +50,7 @@ jobs:
               androidxCoordinatorLayoutVersion = '1.2.0'
               androidxCoreVersion = '1.13.1'
               androidxFragmentVersion = '1.7.1'
+              coreSplashScreenVersion = '1.0.1'
               junitVersion = '4.13.2'
               androidxJunitVersion = '1.1.5'
               androidxEspressoCoreVersion = '3.5.1'
@@ -83,7 +84,6 @@ jobs:
           </paths>
           EOF
 
-      # SYSTEM PERMISSIONS INJECTION: Overwrites the default manifest file to add Bluetooth capabilities
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
           cat << 'EOF' > android/app/src/main/AndroidManifest.xml
@@ -134,7 +134,7 @@ jobs:
           if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
           else
-            echo "Logo not found. Skipping icon generations."
+            echo "Branding graphics skipped."
           fi
 
       - name: Sync Production Assets & Plugins
