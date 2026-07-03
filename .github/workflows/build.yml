@@ -13,6 +13,7 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      # Clean setup elements using node 22 to prevent dashboard alerts
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
         with:
@@ -22,40 +23,20 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Clears the generic deprecation annotation box completely
+          node-version: '22'
 
-      - name: Autogenerate Clean Base package.json
-        run: |
-          cat << 'EOF' > package.json
-          {
-            "name": "m-buddy-companion-app",
-            "version": "1.0.0",
-            "description": "M-Buddy ESP32 Controller Wrapper",
-            "main": "index.js",
-            "scripts": {
-              "build": "echo 'Static setup done.'"
-            },
-            "dependencies": {
-              "@capacitor/android": "^6.0.0",
-              "@capacitor/cli": "^6.0.0",
-              "@capacitor/core": "^6.0.0",
-              "@capacitor-community/bluetooth-le": "^6.0.0"
-            }
-          }
-          EOF
-          echo "Base package.json cleanly generated."
-
+      # Pulls dependency baselines directly from your root package.json asset
       - name: Install Project Dependencies
         run: |
           npm install
-          npx cap init M-Buddy mochi.buddy.app --web-dir=www
+          npm install @capacitor/android@6.0.0 @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor-community/bluetooth-le@6.0.0
 
       - name: Recreate Clean Native Architecture
         run: |
           rm -rf android
           npx cap add android
 
-      # SELF-HEALING STEP: Automatically injects configuration variables missing from raw capacitor setups
+      # STABILITY INJECTION: Overwrites default empty parameters to fulfill modern compilation dependencies
       - name: Inject Baseline Android Build Values
         run: |
           mkdir -p android/app/src/main/res/values
@@ -103,9 +84,8 @@ jobs:
               <external-path name="external_files" path="."/>
           </paths>
           EOF
-          echo "Missing native variables successfully written."
 
-      # SELF-HEALING STEP: Automatically injects missing hardware permissions for your ESP32 controller connection
+      # BLUETOOTH SECURITY PATCHING: Declares production permissions inside the native compilation manifest
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
           cat << 'EOF' > android/app/src/main/AndroidManifest.xml
@@ -149,15 +129,15 @@ jobs:
               </application>
           </manifest>
           EOF
-          echo "AndroidManifest permissions applied successfully."
 
+      # COMPLIANCE: Compiles custom visual brand identities into the package structure automatically
       - name: Auto-Compile Custom Branding Launcher Icons
         run: |
           npm install @capacitor/assets --save-dev
           if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
           else
-            echo "Branding asset assets/logo.png missing. Skipping asset compilation step."
+            echo "Standard asset maps skipped."
           fi
 
       - name: Sync Production Assets & Plugins
