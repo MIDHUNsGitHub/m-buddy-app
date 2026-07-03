@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>M-Buddy Companion Control</title>
+  <title>M-Buddy Direct Control</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght=400;700;900&family=Rajdhani:wght=500;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Rajdhani', sans-serif;
-      background: radial-gradient(circle at center, #1b0a2a, #0c0414);
+      background: radial-gradient(circle at center, #140526, #07020d);
     }
     .futuristic-title { font-family: 'Orbitron', sans-serif; }
     ::-webkit-scrollbar { display: none; }
@@ -18,30 +18,30 @@
 <body class="text-white min-h-screen p-4 flex flex-col justify-between relative">
 
   <div id="toastContainer" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none transition-all duration-300 transform -translate-y-10 opacity-0">
-    <div class="bg-purple-950/90 border border-purple-500/40 rounded-2xl p-4 shadow-lg backdrop-blur-xl flex items-center gap-3">
-      <div id="toastIcon" class="w-8 h-8 rounded-full flex items-center justify-center bg-purple-500/20 text-purple-400"></div>
+    <div class="bg-purple-950/90 border border-purple-500/40 rounded-2xl p-4 shadow-xl backdrop-blur-xl flex items-center gap-3">
+      <div id="toastIcon" class="w-8 h-8 rounded-full flex items-center justify-center bg-purple-500/20 text-purple-400 font-bold">✓</div>
       <div>
-        <p id="toastTitle" class="font-bold text-sm futuristic-title text-purple-300">SYSTEM STATUS</p>
+        <p id="toastTitle" class="font-bold text-sm futuristic-title text-purple-300">ALERT</p>
         <p id="toastMessage" class="text-xs text-gray-300 mt-0.5"></p>
       </div>
     </div>
   </div>
 
-  <header class="text-center py-4 border-b border-purple-900/40">
+  <header class="text-center py-4 border-b border-purple-900/30">
     <h1 class="futuristic-title text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-indigo-400">
       M-BUDDY
     </h1>
-    <p class="text-xs text-purple-400/80 tracking-widest uppercase mt-1">Direct Hardware Link</p>
+    <p class="text-xs text-purple-400/60 tracking-widest uppercase mt-1">Direct Hardware Layer</p>
   </header>
 
   <main class="max-w-md mx-auto w-full flex-grow flex flex-col justify-center gap-6 py-6">
 
-    <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-xl">
-      <div class="flex items-center justify-between border-b border-purple-900/40 pb-4">
+    <div class="bg-purple-950/10 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-xl shadow-2xl">
+      <div class="flex items-center justify-between border-b border-purple-900/30 pb-4">
         <div>
           <span class="text-xs text-purple-400 uppercase tracking-widest">Link Status</span>
           <h2 id="connectionState" class="text-2xl font-bold text-gray-400 futuristic-title mt-1">DISCONNECTED</h2>
-          <span id="runtimeEngine" class="text-[10px] text-purple-400/60 uppercase tracking-wider block mt-1">Detecting Engine...</span>
+          <span id="runtimeEngine" class="text-[10px] text-purple-500/40 uppercase tracking-wider block mt-1">Detecting Engine...</span>
         </div>
         <div class="relative flex h-4 w-4">
           <span id="pingRing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -53,30 +53,27 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Buddy Suffix (e.g. B94F)</span>
-            <input type="text" id="mochiID" maxlength="4" placeholder="Any" class="w-full bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-2 text-center futuristic-title font-bold text-white uppercase focus:outline-none">
+            <input type="text" id="mochiID" maxlength="4" placeholder="Any" class="w-full bg-purple-950/30 border border-purple-500/20 rounded-xl px-3 py-2 text-center futuristic-title font-bold text-white uppercase focus:outline-none">
           </div>
           <div>
             <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Security PIN</span>
-            <input type="password" id="mochiPIN" maxlength="4" placeholder="1234" class="w-full bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-2 text-center futuristic-title font-bold text-white focus:outline-none">
+            <input type="password" id="mochiPIN" maxlength="4" placeholder="1234" class="w-full bg-purple-950/30 border border-purple-500/20 rounded-xl px-3 py-2 text-center futuristic-title font-bold text-white focus:outline-none">
           </div>
         </div>
       </div>
 
       <div class="grid grid-cols-1 gap-3 mt-6">
-        <button id="connectBtn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm transition-all transform active:scale-95">
-          Search & Authenticate
-        </button>
-        <button id="unpairBtn" class="hidden w-full py-2 bg-red-950/20 border border-red-500/30 rounded-xl font-bold text-xs text-red-400 uppercase tracking-wider">
-          Reset Connection Cache
+        <button id="connectBtn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm transition-all active:scale-95">
+          Scan & Link Device
         </button>
       </div>
     </div>
 
-    <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6 space-y-4">
-      <span class="text-xs text-purple-400 uppercase tracking-widest block">Live OLED Output</span>
+    <div class="bg-purple-950/10 border border-purple-500/20 rounded-3xl p-6 space-y-4">
+      <span class="text-xs text-purple-400 uppercase tracking-widest block">Transmit Panel Text</span>
       <div class="flex gap-2">
-        <input type="text" id="customOledText" maxlength="15" placeholder="Type text here..." class="flex-grow bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-2 text-white futuristic-title focus:outline-none">
-        <button id="sendDirectBtn" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold text-xs uppercase tracking-widest transition-all">
+        <input type="text" id="customOledText" maxlength="15" placeholder="Type text payload..." class="flex-grow bg-purple-950/30 border border-purple-500/20 rounded-xl px-3 py-2 text-white futuristic-title focus:outline-none">
+        <button id="sendDirectBtn" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold text-xs uppercase tracking-widest transition-all">
           Send
         </button>
       </div>
@@ -84,8 +81,8 @@
 
   </main>
 
-  <footer id="bottomStatusBar" class="text-center py-4 text-xs text-purple-400/30 uppercase tracking-widest">
-    System Offline &bull; Direct Mode Active
+  <footer class="text-center py-4 text-xs text-purple-400/20 uppercase tracking-widest">
+    Hardware Direct Pipe Mode Active
   </footer>
 
   <script>
@@ -93,12 +90,10 @@
     const CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 
     let bluetoothDevice = null;
-    let rxCharacteristic = null; // Used for Web Bluetooth fallback
+    let rxCharacteristic = null;
     let isCapacitorActive = false;
-    let autoSyncTimer = null;
 
     const connectBtn = document.getElementById('connectBtn');
-    const unpairBtn = document.getElementById('unpairBtn');
     const connectionState = document.getElementById('connectionState');
     const pingRing = document.getElementById('pingRing');
     const pingDot = document.getElementById('pingDot');
@@ -106,41 +101,42 @@
     const inputMochiPIN = document.getElementById('mochiPIN');
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
-    const bottomStatusBar = document.getElementById('bottomStatusBar');
     const sendDirectBtn = document.getElementById('sendDirectBtn');
 
-    // SAFE ENCODING TECHNIQUE: Converts clean text to absolute plain base-64 arrays safely 
-    function encodePayloadToBase64(text) {
-      const codeUnits = new Uint16Array(text.length);
-      for (let i = 0; i < codeUnits.length; i++) {
-        codeUnits[i] = text.charCodeAt(i);
+    // NATIVE SAFE COERCION: Encodes regular ASCII text into an Android plugin friendly Base64 structural layout
+    function safeStringToBase64(str) {
+      try {
+        let binary = '';
+        for (let i = 0; i < str.length; i++) {
+          binary += String.fromCharCode(str.charCodeAt(i) & 0xff);
+        }
+        return btoa(binary);
+      } catch (e) {
+        // Fallback layout builder
+        return btoa(unescape(encodeURIComponent(str)));
       }
-      return btoa(String.fromCharCode.apply(null, new Uint8Array(codeUnits.buffer)));
     }
 
     window.addEventListener('load', () => {
-      // Load quick local cache settings
       if(localStorage.getItem('m_id')) inputMochiID.value = localStorage.getItem('m_id');
       if(localStorage.getItem('m_pin')) inputMochiPIN.value = localStorage.getItem('m_pin');
 
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
         isCapacitorActive = true;
-        runtimeEngineText.textContent = "Native Android BLE Engine Engine Configured";
+        runtimeEngineText.textContent = "Capacitor Native Engine Active";
         runtimeEngineText.className = "text-[10px] text-green-400 font-bold uppercase tracking-wider block mt-1";
       } else {
         isCapacitorActive = false;
-        runtimeEngineText.textContent = "Standard Browser Web BLE Ready";
-        runtimeEngineText.className = "text-[10px] text-purple-400/50 uppercase tracking-wider block mt-1";
+        runtimeEngineText.textContent = "Web Bluetooth Engine Active";
+        runtimeEngineText.className = "text-[10px] text-purple-400/40 uppercase tracking-wider block mt-1";
       }
     });
 
-    connectBtn.addEventListener('click', async () => {
+    connectBtn.addEventListener('click', () => {
       if (bluetoothDevice) {
         disconnectDevice();
         return;
       }
-      
-      // Save credentials locally instantly
       localStorage.setItem('m_id', inputMochiID.value.trim().toUpperCase());
       localStorage.setItem('m_pin', inputMochiPIN.value.trim());
 
@@ -153,9 +149,9 @@
 
     sendDirectBtn.addEventListener('click', () => {
       const txt = customOledTextInput.value.trim();
-      if(!txt) return;
-      sendBleCommand(`DASH:12:00|Local|DirectText|${txt}`);
-      showToast("SENT", `Dispatched text payload: "${txt}"`);
+      if(!txt || !bluetoothDevice) return;
+      sendBleCommand(`DASH:12:00|Direct|SyncMode|${txt}`);
+      showToast("SENT", `Dispatched text payload.`);
     });
 
     async function handleNativeConnect() {
@@ -163,7 +159,7 @@
       const targetPin = inputMochiPIN.value.trim() || "1234";
 
       try {
-        connectionState.textContent = "BOOTING RADIO...";
+        connectionState.textContent = "INITIALIZING...";
         await Ble.initialize();
         
         connectionState.textContent = "SCANNING...";
@@ -179,38 +175,38 @@
         connectionState.textContent = "CONNECTING...";
         await Ble.connect({ 
           deviceId: selectedDevice.deviceId,
-          timeout: 8000 
+          timeout: 15000
         });
+
+        // SAFETY MEASURE: Short delay to let native device characteristics descriptor maps stabilize inside Android core
+        await new Promise(resolve => setTimeout(resolve, 600));
         
         connectionState.textContent = "AUTHENTICATING...";
         
-        // CRASH PREVENTATIVE STEP: Write authentication using explicit flat string payloads
-        const cleanAuthPayload = `AUTH:${targetPin}`;
-        const base64String = encodePayloadToBase64(cleanAuthPayload);
+        const cleanPayload = `AUTH:${targetPin}`;
+        const finalBase64 = safeStringToBase64(cleanPayload);
 
+        // STACK ISOLATION BLOCK: Direct native bridge command execute
         await Ble.write({
           deviceId: selectedDevice.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: base64String
+          value: finalBase64
         });
 
-        // If we reach this point, the write was a success and did not crash!
+        // Set state safely
         bluetoothDevice = selectedDevice;
-        setUiConnected(selectedDevice.name || "M-Buddy Client");
-        
+        setUiConnected(selectedDevice.name || "M-BUDDY ENHANCED");
+
       } catch (err) {
-        console.error("Link exception handled successfully:", err);
-        showToast("HARDWARE FAILURE", err.message || "Device rejected signature connection profile.", true);
+        console.error("Caught exception to prevent crash:", err);
+        showToast("CONNECTION FAILED", "Hardware initialization handshake rejected.", true);
         onDisconnected();
       }
     }
 
     async function handleWebConnect() {
-      if (!navigator.bluetooth) {
-        showToast("NOT SUPPORTED", "Web BLE missing on this agent.", true);
-        return;
-      }
+      if (!navigator.bluetooth) return;
       const targetPin = inputMochiPIN.value.trim() || "1234";
       try {
         connectionState.textContent = "SEARCHING...";
@@ -229,9 +225,8 @@
         await rxCharacteristic.writeValue(encoder.encode(`AUTH:${targetPin}`));
 
         bluetoothDevice = device;
-        setUiConnected(device.name || "Web Companion Connected");
+        setUiConnected(device.name || "Web Client Mode");
       } catch (e) {
-        showToast("LINK FAILURE", "Web initialization aborted.", true);
         onDisconnected();
       }
     }
@@ -244,9 +239,9 @@
             deviceId: bluetoothDevice.deviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: encodePayloadToBase64(commandString)
+            value: safeStringToBase64(commandString)
           });
-        } catch(e) { console.error("Write tracking dropped:", e); }
+        } catch(e) { console.error(e); }
       } else if (rxCharacteristic) {
         try {
           const encoder = new TextEncoder();
@@ -262,8 +257,7 @@
       pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
       connectBtn.textContent = "Disconnect Link";
       connectBtn.className = "w-full py-4 bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm transition-all transform active:scale-95";
-      bottomStatusBar.textContent = "Direct Link Pipe Active • Offline Confirmed";
-      showToast("SUCCESS", "Authenticated directly over Bluetooth airwaves!");
+      showToast("CONNECTED", "Direct hardware transmission path established.");
     }
 
     function disconnectDevice() {
@@ -282,9 +276,8 @@
       connectionState.className = "text-gray-400 text-2xl font-bold futuristic-title mt-1";
       pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-red-500";
       pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75";
-      connectBtn.textContent = "Search & Authenticate";
+      connectBtn.textContent = "Scan & Link Device";
       connectBtn.className = "w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm transition-all transform active:scale-95";
-      bottomStatusBar.textContent = "System Offline • Direct Mode Active";
     }
 
     function showToast(title, message, isError = false) {
