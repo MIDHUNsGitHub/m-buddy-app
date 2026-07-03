@@ -58,22 +58,13 @@ jobs:
           }
           EOF
 
+         
           cat << 'EOF' > android/app/src/main/res/values/strings.xml
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <string name="app_name">M-Buddy</string>
-              <string name="title_activity_main">MainActivity</string>
+              <string name="title_activity_main">M-Buddy</string>
               <string name="custom_url_scheme">mochi.buddy.app</string>
-          </resources>
-          EOF
-
-          cat << 'EOF' > android/app/src/main/res/values/styles.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar"></style>
-              <style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.Light.NoActionBar">
-                  <item name="android:background">#1b0a2a</item>
-              </style>
           </resources>
           EOF
 
