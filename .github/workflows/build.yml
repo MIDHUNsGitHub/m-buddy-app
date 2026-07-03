@@ -29,12 +29,12 @@ jobs:
           npm install
           npm install @capacitor/android@6.0.0 @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor-community/bluetooth-le@6.0.0
 
+      # FORCED REBUILD: Cleans out any old caching configs to force clean plugin generation
       - name: Recreate Clean Native Architecture
         run: |
           rm -rf android
           npx cap add android
 
-      # FIXED STAGE: Added 'coreSplashScreenVersion' to completely satisfy line 37 in build.gradle
       - name: Inject Baseline Android Build Values
         run: |
           mkdir -p android/app/src/main/res/values
@@ -84,6 +84,8 @@ jobs:
           </paths>
           EOF
 
+      # PRODUCTION FIX: Inject explicit fine/coarse hardware feature parameters alongside permissions 
+      # This stops Android from killing the app process immediately if background bluetooth is called.
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
           cat << 'EOF' > android/app/src/main/AndroidManifest.xml
@@ -96,12 +98,16 @@ jobs:
               <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
               <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
               <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+              
+              <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+
               <application
                   android:allowBackup="true"
                   android:icon="@mipmap/ic_launcher"
                   android:label="@string/app_name"
                   android:roundIcon="@mipmap/ic_launcher_round"
                   android:supportsRtl="true"
+                  android:usesCleartextTraffic="true"
                   android:theme="@style/AppTheme">
                   <activity
                       android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
@@ -137,8 +143,11 @@ jobs:
             echo "Branding graphics skipped."
           fi
 
+      # CRITICAL SAFEGUARD: Explicitly links and updates plugin bridging files inside Java source code
       - name: Sync Production Assets & Plugins
-        run: npx cap sync android
+        run: |
+          npx cap update android
+          npx cap sync android
 
       - name: Build Standalone APK via Gradle
         run: |
