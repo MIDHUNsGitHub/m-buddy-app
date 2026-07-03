@@ -7,10 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght=400;700;900&family=Rajdhani:wght=500;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Rajdhani', sans-serif;
-      background: radial-gradient(circle at center, #140526, #07020d);
-    }
+    body { font-family: 'Rajdhani', sans-serif; background: radial-gradient(circle at center, #1b0a2a, #0c0414); }
     .futuristic-title { font-family: 'Orbitron', sans-serif; }
     ::-webkit-scrollbar { display: none; }
   </style>
@@ -27,21 +24,18 @@
     </div>
   </div>
 
-  <header class="text-center py-4 border-b border-purple-900/30">
-    <h1 class="futuristic-title text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-indigo-400">
-      M-BUDDY
-    </h1>
-    <p class="text-xs text-purple-400/60 tracking-widest uppercase mt-1">Direct Hardware Layer</p>
+  <header class="text-center py-4 border-b border-purple-900/40">
+    <h1 class="futuristic-title text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-indigo-400">M-BUDDY</h1>
+    <p class="text-xs text-purple-400/80 tracking-widest uppercase mt-1">Direct Hardware Layer</p>
   </header>
 
   <main class="max-w-md mx-auto w-full flex-grow flex flex-col justify-center gap-6 py-6">
-
-    <div class="bg-purple-950/10 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-xl shadow-2xl">
-      <div class="flex items-center justify-between border-b border-purple-900/30 pb-4">
+    <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-xl">
+      <div class="flex items-center justify-between border-b border-purple-900/40 pb-4">
         <div>
           <span class="text-xs text-purple-400 uppercase tracking-widest">Link Status</span>
           <h2 id="connectionState" class="text-2xl font-bold text-gray-400 futuristic-title mt-1">DISCONNECTED</h2>
-          <span id="runtimeEngine" class="text-[10px] text-purple-500/40 uppercase tracking-wider block mt-1">Detecting Engine...</span>
+          <span id="runtimeEngine" class="text-[10px] text-purple-400/60 uppercase tracking-wider block mt-1">Detecting Engine...</span>
         </div>
         <div class="relative flex h-4 w-4">
           <span id="pingRing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -52,38 +46,23 @@
       <div class="mt-4 space-y-3">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Buddy Suffix (e.g. B94F)</span>
-            <input type="text" id="mochiID" maxlength="4" placeholder="Any" class="w-full bg-purple-950/30 border border-purple-500/20 rounded-xl px-3 py-2 text-center futuristic-title font-bold text-white uppercase focus:outline-none">
+            <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">M-Buddy Suffix</span>
+            <input type="text" id="mochiID" maxlength="4" placeholder="Any" class="w-full bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-2 text-center futuristic-title font-bold text-white uppercase focus:outline-none">
           </div>
           <div>
             <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Security PIN</span>
-            <input type="password" id="mochiPIN" maxlength="4" placeholder="1234" class="w-full bg-purple-950/30 border border-purple-500/20 rounded-xl px-3 py-2 text-center futuristic-title font-bold text-white focus:outline-none">
+            <input type="password" id="mochiPIN" maxlength="4" placeholder="1234" class="w-full bg-purple-950/40 border border-purple-500/30 rounded-xl px-3 py-2 text-center futuristic-title font-bold text-white focus:outline-none">
           </div>
         </div>
       </div>
 
       <div class="grid grid-cols-1 gap-3 mt-6">
-        <button id="connectBtn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm transition-all active:scale-95">
-          Scan & Link Device
+        <button id="connectBtn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm transition-all transform active:scale-95">
+          Search & Connect
         </button>
       </div>
     </div>
-
-    <div class="bg-purple-950/10 border border-purple-500/20 rounded-3xl p-6 space-y-4">
-      <span class="text-xs text-purple-400 uppercase tracking-widest block">Transmit Panel Text</span>
-      <div class="flex gap-2">
-        <input type="text" id="customOledText" maxlength="15" placeholder="Type text payload..." class="flex-grow bg-purple-950/30 border border-purple-500/20 rounded-xl px-3 py-2 text-white futuristic-title focus:outline-none">
-        <button id="sendDirectBtn" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold text-xs uppercase tracking-widest transition-all">
-          Send
-        </button>
-      </div>
-    </div>
-
   </main>
-
-  <footer class="text-center py-4 text-xs text-purple-400/20 uppercase tracking-widest">
-    Hardware Direct Pipe Mode Active
-  </footer>
 
   <script>
     const SERVICE_UUID        = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
@@ -99,62 +78,39 @@
     const pingDot = document.getElementById('pingDot');
     const inputMochiID = document.getElementById('mochiID');
     const inputMochiPIN = document.getElementById('mochiPIN');
-    const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
-    const sendDirectBtn = document.getElementById('sendDirectBtn');
 
-    // NATIVE SAFE COERCION: Encodes regular ASCII text into an Android plugin friendly Base64 structural layout
-    function safeStringToBase64(str) {
-      try {
-        let binary = '';
-        for (let i = 0; i < str.length; i++) {
-          binary += String.fromCharCode(str.charCodeAt(i) & 0xff);
-        }
-        return btoa(binary);
-      } catch (e) {
-        // Fallback layout builder
-        return btoa(unescape(encodeURIComponent(str)));
+    // Clean, direct Base64 encoding function safe for native Android platforms
+    function cleanToBase64(str) {
+      let result = '';
+      for (let i = 0; i < str.length; i++) {
+        result += String.fromCharCode(str.charCodeAt(i) & 0xff);
       }
+      return btoa(result);
     }
 
     window.addEventListener('load', () => {
-      if(localStorage.getItem('m_id')) inputMochiID.value = localStorage.getItem('m_id');
-      if(localStorage.getItem('m_pin')) inputMochiPIN.value = localStorage.getItem('m_pin');
-
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
         isCapacitorActive = true;
-        runtimeEngineText.textContent = "Capacitor Native Engine Active";
+        runtimeEngineText.textContent = "Capacitor Native BLE System Ready";
         runtimeEngineText.className = "text-[10px] text-green-400 font-bold uppercase tracking-wider block mt-1";
       } else {
         isCapacitorActive = false;
-        runtimeEngineText.textContent = "Web Bluetooth Engine Active";
-        runtimeEngineText.className = "text-[10px] text-purple-400/40 uppercase tracking-wider block mt-1";
+        runtimeEngineText.textContent = "Web Engine Standby Mode";
       }
     });
 
-    connectBtn.addEventListener('click', () => {
-      if (bluetoothDevice) {
-        disconnectDevice();
-        return;
-      }
-      localStorage.setItem('m_id', inputMochiID.value.trim().toUpperCase());
-      localStorage.setItem('m_pin', inputMochiPIN.value.trim());
-
+    connectBtn.addEventListener('click', async () => {
+      if (bluetoothDevice) { onDisconnected(); return; }
+      
       if (isCapacitorActive) {
-        handleNativeConnect();
+        handleCapacitorLink();
       } else {
-        handleWebConnect();
+        showToast("ERROR", "Please run this inside the Android application shell.", true);
       }
     });
 
-    sendDirectBtn.addEventListener('click', () => {
-      const txt = customOledTextInput.value.trim();
-      if(!txt || !bluetoothDevice) return;
-      sendBleCommand(`DASH:12:00|Direct|SyncMode|${txt}`);
-      showToast("SENT", `Dispatched text payload.`);
-    });
-
-    async function handleNativeConnect() {
+    async function handleCapacitorLink() {
       const Ble = window.Capacitor.Plugins.BluetoothLe;
       const targetPin = inputMochiPIN.value.trim() || "1234";
 
@@ -163,141 +119,63 @@
         await Ble.initialize();
         
         connectionState.textContent = "SCANNING...";
-        const selectedDevice = await Ble.requestDevice({
-          serviceUUIDs: [SERVICE_UUID]
-        });
+        const device = await Ble.requestDevice({ serviceUUIDs: [SERVICE_UUID] });
 
-        if (!selectedDevice || !selectedDevice.deviceId) {
-          onDisconnected();
-          return;
-        }
+        if (!device || !device.deviceId) { onDisconnected(); return; }
 
         connectionState.textContent = "CONNECTING...";
-        await Ble.connect({ 
-          deviceId: selectedDevice.deviceId,
-          timeout: 15000
-        });
-
-        // SAFETY MEASURE: Short delay to let native device characteristics descriptor maps stabilize inside Android core
-        await new Promise(resolve => setTimeout(resolve, 600));
+        await Ble.connect({ deviceId: device.deviceId, timeout: 10000 });
         
+        // Safety grace period for Android service mapping tables to finish indexing
+        await new Promise(r => setTimeout(r, 600));
+
         connectionState.textContent = "AUTHENTICATING...";
         
-        const cleanPayload = `AUTH:${targetPin}`;
-        const finalBase64 = safeStringToBase64(cleanPayload);
+        const payloadStr = `AUTH:${targetPin}`;
+        const encodedValue = cleanToBase64(payloadStr);
 
-        // STACK ISOLATION BLOCK: Direct native bridge command execute
+        // Native Write Operation
         await Ble.write({
-          deviceId: selectedDevice.deviceId,
+          deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: finalBase64
+          value: encodedValue
         });
-
-        // Set state safely
-        bluetoothDevice = selectedDevice;
-        setUiConnected(selectedDevice.name || "M-BUDDY ENHANCED");
-
-      } catch (err) {
-        console.error("Caught exception to prevent crash:", err);
-        showToast("CONNECTION FAILED", "Hardware initialization handshake rejected.", true);
-        onDisconnected();
-      }
-    }
-
-    async function handleWebConnect() {
-      if (!navigator.bluetooth) return;
-      const targetPin = inputMochiPIN.value.trim() || "1234";
-      try {
-        connectionState.textContent = "SEARCHING...";
-        const device = await navigator.bluetooth.requestDevice({
-          filters: [{ namePrefix: 'M-Buddy_' }, { namePrefix: 'ESP32' }],
-          optionalServices: [SERVICE_UUID]
-        });
-
-        connectionState.textContent = "CONNECTING...";
-        const server = await device.gatt.connect();
-        const service = await server.getPrimaryService(SERVICE_UUID);
-        rxCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-
-        connectionState.textContent = "AUTHENTICATING...";
-        const encoder = new TextEncoder();
-        await rxCharacteristic.writeValue(encoder.encode(`AUTH:${targetPin}`));
 
         bluetoothDevice = device;
-        setUiConnected(device.name || "Web Client Mode");
-      } catch (e) {
+        connectionState.textContent = (device.name || "M-BUDDY").toUpperCase();
+        connectionState.className = "text-2xl font-bold futuristic-title mt-1 text-green-400";
+        pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
+        pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
+        connectBtn.textContent = "Disconnect Link";
+        showToast("SUCCESS", "Directly linked over hardware channels.");
+
+      } catch (err) {
+        console.error("Safely captured native error:", err);
+        showToast("LINK FAILURE", err.message || "Write request timed out.", true);
         onDisconnected();
       }
-    }
-
-    async function sendBleCommand(commandString) {
-      if (!bluetoothDevice) return;
-      if (isCapacitorActive) {
-        try {
-          await window.Capacitor.Plugins.BluetoothLe.write({
-            deviceId: bluetoothDevice.deviceId,
-            service: SERVICE_UUID,
-            characteristic: CHARACTERISTIC_UUID,
-            value: safeStringToBase64(commandString)
-          });
-        } catch(e) { console.error(e); }
-      } else if (rxCharacteristic) {
-        try {
-          const encoder = new TextEncoder();
-          await rxCharacteristic.writeValue(encoder.encode(commandString));
-        } catch(e) { console.error(e); }
-      }
-    }
-
-    function setUiConnected(deviceName) {
-      connectionState.textContent = deviceName.toUpperCase();
-      connectionState.className = "text-2xl font-bold futuristic-title mt-1 text-green-400";
-      pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
-      pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
-      connectBtn.textContent = "Disconnect Link";
-      connectBtn.className = "w-full py-4 bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm transition-all transform active:scale-95";
-      showToast("CONNECTED", "Direct hardware transmission path established.");
-    }
-
-    function disconnectDevice() {
-      if (isCapacitorActive && bluetoothDevice) {
-        window.Capacitor.Plugins.BluetoothLe.disconnect({ deviceId: bluetoothDevice.deviceId }).catch(()=>{});
-      } else if (bluetoothDevice && bluetoothDevice.gatt) {
-        bluetoothDevice.gatt.disconnect();
-      }
-      onDisconnected();
     }
 
     function onDisconnected() {
       bluetoothDevice = null;
-      rxCharacteristic = null;
       connectionState.textContent = "DISCONNECTED";
       connectionState.className = "text-gray-400 text-2xl font-bold futuristic-title mt-1";
       pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-red-500";
       pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75";
-      connectBtn.textContent = "Scan & Link Device";
-      connectBtn.className = "w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl font-bold tracking-widest uppercase futuristic-title text-sm transition-all transform active:scale-95";
+      connectBtn.textContent = "Search & Connect";
     }
 
     function showToast(title, message, isError = false) {
       const container = document.getElementById('toastContainer');
       document.getElementById('toastTitle').textContent = title;
       document.getElementById('toastMessage').textContent = message;
-      const ib = document.getElementById('toastIcon');
-      if (isError) {
-        ib.className = "w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-400";
-        ib.innerHTML = "✕";
-      } else {
-        ib.className = "w-8 h-8 rounded-full flex items-center justify-center bg-green-500/20 text-green-400";
-        ib.innerHTML = "✓";
-      }
       container.classList.remove('opacity-0', '-translate-y-10');
       container.classList.add('opacity-100', 'translate-y-0');
       setTimeout(() => {
         container.classList.remove('opacity-100', 'translate-y-0');
         container.classList.add('opacity-0', '-translate-y-10');
-      }, 3000);
+      }, 3500);
     }
   </script>
 </body>
