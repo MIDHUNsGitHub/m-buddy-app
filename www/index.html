@@ -8,7 +8,7 @@
   <script src="capacitor.js"></script>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Space+Grotesk:wght=500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   
   <style>
     body {
@@ -332,13 +332,12 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
+    // Fix 1: Bulletproof hex string formatter for Android's Capacitor Ble driver profile
     function stringToHex(str) {
-      const encoder = new TextEncoder();
-      const view = encoder.encode(str);
       let hex = '';
-      for (let i = 0; i < view.length; i++) {
-        const num = view[i].toString(16);
-        hex += (num.length === 1 ? '0' : '') + num;
+      for (let i = 0; i < str.length; i++) {
+        let code = str.charCodeAt(i).toString(16);
+        hex += (code.length === 1 ? '0' : '') + code;
       }
       return hex.toLowerCase();
     }
@@ -352,6 +351,12 @@
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
         isCapacitorActive = true;
         runtimeEngineText.textContent = "Capacitor Native Stack Running";
+        
+        // Request Location Hardware Permissions explicitly from Android framework immediately
+        try {
+          await window.Capacitor.Plugins.BluetoothLe.initialize();
+        } catch(e){}
+        
         const lastPairedMAC = localStorage.getItem('mochi_paired_mac');
         const lastPairedName = localStorage.getItem('mochi_paired_name') || "M-BUDDY";
         if (lastPairedMAC) {
@@ -376,13 +381,11 @@
       const Ble = window.Capacitor.Plugins.BluetoothLe;
       const pinCode = inputMochiPIN.value.trim() || "1234";
       try {
-        await Ble.initialize();
         connectionState.textContent = "LINKING...";
         await Ble.connect({ deviceId: macAddress, timeout: 10000 });
         
         await new Promise(r => setTimeout(r, 1000));
         
-        // Pass code authorization
         const handshakeToken = `AUTH:${pinCode}|Handset`;
         await Ble.write({
           deviceId: macAddress,
@@ -409,8 +412,6 @@
       }
 
       try {
-        connectionState.textContent = "INITIALIZING...";
-        await Ble.initialize();
         connectionState.textContent = "SCANNING...";
         
         let scanFilters = [];
@@ -457,8 +458,6 @@
       connectBtn.textContent = "Disconnect Robot";
       unpairBtn.classList.remove('hidden');
       
-      // NOTICE: CMD:DASHBOARD HAS BEEN COMPLETELY REMOVED FROM HERE!
-      // The app will now safely stream without hijacking your robot's current mode.
       startAutomaticSync();
     }
 
@@ -514,27 +513,45 @@
       onDisconnected();
     });
 
+    // Fix 2: Android Native APK Geolocation Handler fallback sequence
     function startAutomaticSync() {
       if (gpsInterval) clearInterval(gpsInterval);
       gpsBtn.textContent = "Streaming...";
 
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
+      const fetchTelemetryData = async (lat, lon) => {
         try {
-          const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+          // Uses alternative dynamic reverse geocoder for safe WebView packaging access
+          const geoRes = await fetch(`https://geocode.maps.co/reverse?lat=${lat}&lon=${lon}&api_key=65cb4b711e58e`);
           const geoData = await geoRes.json();
-          cityName = geoData.address.city || geoData.address.town || "Kochi";
-          if (cityName.length > 10) cityName = cityName.substring(0, 10);
-          document.getElementById('appCity').textContent = cityName;
+          cityName = geoData.address.city || geoData.address.town || geoData.address.suburb || "Kochi";
+        } catch (e) {
+          cityName = "Kochi"; // Native fallback state
+        }
+        
+        if (cityName.length > 10) cityName = cityName.substring(0, 10);
+        document.getElementById('appCity').textContent = cityName;
 
+        try {
           const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
           const weatherData = await weatherRes.json();
           weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}C`;
           document.getElementById('appWeather').textContent = weatherDetails;
         } catch (e) {}
+        
         window.sendSyncPacket();
-      }, () => { window.sendSyncPacket(); });
+      };
+
+      // Native execution wrapper loop
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          fetchTelemetryData(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          // Fallback coordinate mapping for APK container execution when system GPS is toggled off
+          fetchTelemetryData(9.9312, 76.2673); 
+        },
+        { enableHighAccuracy: false, timeout: 8000 }
+      );
 
       gpsInterval = setInterval(window.sendSyncPacket, 3000);
     }
@@ -548,7 +565,6 @@
       let customText = customOledTextInput.value.trim();
       if (!customText) customText = "None";
       
-      // Packs the background dashboard message string safely
       const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
     }
