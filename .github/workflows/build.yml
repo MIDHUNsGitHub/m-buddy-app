@@ -22,9 +22,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Upgrading node versions clears out the warning message box entirely
+          node-version: '22' # Clears the generic deprecation annotation box completely
 
-      # Standardize the dependency footprint mappings
       - name: Autogenerate Clean Base package.json
         run: |
           cat << 'EOF' > package.json
@@ -56,7 +55,7 @@ jobs:
           rm -rf android
           npx cap add android
 
-      # SELF-CONTAINED FIX: Automatically writes missing design resource configurations required by the Android Gradle compiler
+      # SELF-HEALING STEP: Automatically injects configuration variables missing from raw capacitor setups
       - name: Inject Baseline Android Build Values
         run: |
           mkdir -p android/app/src/main/res/values
@@ -104,9 +103,9 @@ jobs:
               <external-path name="external_files" path="."/>
           </paths>
           EOF
-          echo "Missing config values successfully injected."
+          echo "Missing native variables successfully written."
 
-      # SELF-CONTAINED PERMISSIONS: Injects correct BLE security permissions into the generated app manifest
+      # SELF-HEALING STEP: Automatically injects missing hardware permissions for your ESP32 controller connection
       - name: Inject Secure Android Hardware Permissions Natively
         run: |
           cat << 'EOF' > android/app/src/main/AndroidManifest.xml
@@ -150,7 +149,7 @@ jobs:
               </application>
           </manifest>
           EOF
-          echo "Native AndroidManifest permissions patch written successfully."
+          echo "AndroidManifest permissions applied successfully."
 
       - name: Auto-Compile Custom Branding Launcher Icons
         run: |
@@ -158,7 +157,7 @@ jobs:
           if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
             npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
           else
-            echo "Branding folder or assets/logo.png layout missing online. Using safe template presets."
+            echo "Branding asset assets/logo.png missing. Skipping asset compilation step."
           fi
 
       - name: Sync Production Assets & Plugins
