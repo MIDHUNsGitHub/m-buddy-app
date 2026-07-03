@@ -375,7 +375,7 @@
   try {
     connectionState.textContent = "INITIALIZING...";
     
-    // CRITICAL REPAIR STAGE: Initialize with explicit Android Location safety override
+    // CRITICAL: Explicitly pass the Android Location safety configuration
     await Ble.initialize({ androidNeverForLocation: true });
     
     connectionState.textContent = "SCANNING...";
@@ -386,7 +386,7 @@
     connectionState.textContent = "CONNECTING...";
     await Ble.connect({ deviceId: device.deviceId, timeout: 10000 });
     
-    // Let hardware internal caches rest
+    // Grace period for the native hardware layer
     await new Promise(r => setTimeout(r, 800));
 
     connectionState.textContent = "AUTHENTICATING...";
@@ -415,76 +415,6 @@
     onDisconnected();
   }
 }
-
-    // Native Capacitor Background Auto-Reconnect Scanner
-    function startNativeAutoReconnectLoop(targetAddress) {
-      if (autoReconnectInterval) clearInterval(autoReconnectInterval);
-      
-      const Ble = window.Capacitor.Plugins.BluetoothLe;
-      
-      autoReconnectInterval = setInterval(async () => {
-        if (bluetoothDevice) return;
-
-        try {
-          await Ble.initialize();
-          const isConnected = await Ble.isConnected({ deviceId: targetAddress });
-          
-          if (isConnected.connected) {
-            setupNativeActiveDevice(targetAddress);
-            clearInterval(autoReconnectInterval);
-            return;
-          }
-
-          connectionState.textContent = "SCANNING...";
-          await Ble.connect({ 
-            deviceId: targetAddress,
-            timeout: 4000
-          });
-
-          setupNativeActiveDevice(targetAddress);
-          clearInterval(autoReconnectInterval);
-        } catch (err) {
-          connectionState.textContent = "SEARCHING REGISTRY...";
-        }
-      }, 5000);
-    }
-
-    async function setupNativeActiveDevice(deviceId) {
-      const Ble = window.Capacitor.Plugins.BluetoothLe;
-      const pinCode = inputMochiPIN.value.trim() || "1234";
-
-      try {
-        bluetoothDevice = { deviceId: deviceId, name: "M-Buddy Sync" };
-        connectionState.textContent = "AUTHENTICATING...";
-        
-        const encoder = new TextEncoder();
-        const dataBytes = Array.from(encoder.encode(`AUTH:${pinCode}`));
-
-        await Ble.write({
-          deviceId: deviceId,
-          service: SERVICE_UUID,
-          characteristic: CHARACTERISTIC_UUID,
-          value: btoa(String.fromCharCode.apply(null, dataBytes))
-        });
-
-        connectionState.textContent = bluetoothDevice.name;
-        connectionState.classList.add('text-green-400');
-        pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
-        pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
-        connectBtn.textContent = "Securely Disconnect";
-        connectBtn.classList.replace('from-purple-600', 'from-red-600');
-        connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
-        unpairBtn.classList.remove('hidden');
-
-        showToast("CONNECTED", "Linked with Native BLE Core!");
-        
-        // 🚀 Auto-engage telemetry and clock sync stream hands-free!
-        startAutomaticSync();
-      } catch (err) {
-        console.error("Native device authentication failed: ", err);
-        onDisconnected();
-      }
-    }
 
     // Custom non-blocking visual Toast Engine
     function showToast(title, message, isError = false) {
