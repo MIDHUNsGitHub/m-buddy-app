@@ -4,9 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>M-Buddy Companion Control</title>
-  <!-- Tailwind CSS CDN -->
+  
+  <script src="capacitor.js"></script>
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght=400;700;900&family=Rajdhani:wght=500;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -16,7 +17,6 @@
     .futuristic-title {
       font-family: 'Orbitron', sans-serif;
     }
-    /* Hide scrollbars for clean presentation */
     ::-webkit-scrollbar {
       display: none;
     }
@@ -24,7 +24,6 @@
 </head>
 <body class="text-white min-h-screen p-4 flex flex-col justify-between selection:bg-purple-500 selection:text-white relative">
 
-  <!-- GLASS TOAST NOTIFICATION BLOCK -->
   <div id="toastContainer" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none transition-all duration-300 transform -translate-y-10 opacity-0">
     <div class="bg-purple-950/90 border border-purple-500/40 rounded-2xl p-4 shadow-[0_0_30px_rgba(168,85,247,0.3)] backdrop-blur-xl flex items-center gap-3">
       <div id="toastIcon" class="w-8 h-8 rounded-full flex items-center justify-center bg-purple-500/20 text-purple-400"></div>
@@ -35,7 +34,6 @@
     </div>
   </div>
 
-  <!-- HEADER -->
   <header class="text-center py-4 border-b border-purple-900/40">
     <h1 class="futuristic-title text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-indigo-400">
       M-BUDDY
@@ -43,10 +41,8 @@
     <p class="text-xs text-purple-400/80 tracking-widest uppercase mt-1">Smart Companion System Link</p>
   </header>
 
-  <!-- CONTROL CONTAINER -->
   <main class="max-w-md mx-auto w-full flex-grow flex flex-col justify-center gap-6 py-6">
 
-    <!-- CONNECTION DETAILS CARD -->
     <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6 backdrop-blur-xl shadow-[0_0_50px_rgba(168,85,247,0.05)]">
       <div class="flex items-center justify-between border-b border-purple-900/40 pb-4">
         <div>
@@ -60,7 +56,6 @@
         </div>
       </div>
 
-      <!-- One-to-One Cryptographic Bindings -->
       <div class="mt-4 space-y-3">
         <label class="block text-xs uppercase tracking-widest text-purple-400">Device Secure ID Lock</label>
         <div class="grid grid-cols-2 gap-3">
@@ -89,9 +84,7 @@
       </div>
     </div>
 
-    <!-- METRICS -->
     <div class="grid grid-cols-2 gap-4">
-      <!-- WEATHER DISPLAY -->
       <div class="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-4 flex flex-col justify-between">
         <span class="text-xs text-purple-400 uppercase tracking-widest">Live Weather</span>
         <div class="my-4 text-center">
@@ -100,7 +93,6 @@
         </div>
       </div>
 
-      <!-- LOCAL CLOCK -->
       <div class="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-4 flex flex-col justify-between">
         <span class="text-xs text-purple-400 uppercase tracking-widest">Phone Time</span>
         <div class="my-4 text-center">
@@ -110,7 +102,6 @@
       </div>
     </div>
 
-    <!-- CUSTOM SCREEN TEXT INPUT CARD WITH MEMORY -->
     <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6 space-y-4">
       <span class="text-xs text-purple-400 uppercase tracking-widest block">Custom OLED Text Display</span>
       <div class="space-y-4">
@@ -124,7 +115,6 @@
           </button>
         </div>
 
-        <!-- Saved Texts List -->
         <div class="pt-3 border-t border-purple-950/40">
           <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-2">Saved Messages (Click to load)</span>
           <div id="savedTextsList" class="space-y-2 max-h-36 overflow-y-auto pr-1">
@@ -134,7 +124,6 @@
       </div>
     </div>
 
-    <!-- GEOLOCATION STREAM CARD -->
     <div class="bg-purple-950/20 border border-purple-500/20 rounded-3xl p-6">
       <div class="flex items-center justify-between mb-4">
         <span class="text-xs text-purple-400 uppercase tracking-widest">Live Location Name</span>
@@ -153,12 +142,10 @@
 
   </main>
 
-  <!-- FOOTER -->
   <footer class="text-center py-4 text-xs text-purple-400/40">
     M-Buddy Companion System &copy; 2026
   </footer>
 
-  <!-- FIREBASE PLATFORM INJECTION MODULE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -177,14 +164,11 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    
-    // Fallback guard against empty string sandbox IDs to prevent invalid double-slash database pathways
     const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
 
     let currentUser = null;
     let savedTextsUnsubscribe = null;
 
-    // RULE 3 MANDATORY RESTREUCTURE: Wrap queries to perform safely *ONLY* after authentication yields valid tokens
     const initAuthAndObserver = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -193,14 +177,11 @@
           await signInAnonymously(auth);
         }
 
-        // Establish real-time sync channel once the system authenticates the profile
         onAuthStateChanged(auth, (user) => {
           currentUser = user;
           if (user) {
-            console.log("Firebase Session Initialized:", user.uid);
             setupSavedTextsListener(user.uid);
           } else {
-            console.log("Firebase Session Torn Down.");
             if (savedTextsUnsubscribe) {
               savedTextsUnsubscribe();
               savedTextsUnsubscribe = null;
@@ -209,22 +190,15 @@
         });
       } catch (authError) {
         console.error("Firebase Authentication process failed:", authError);
-        showToast("AUTH ERROR", "Could not complete secure cloud login handshake.", true);
       }
     };
 
-    // Run custom sequence on boot
     initAuthAndObserver();
 
     function setupSavedTextsListener(userId) {
-      if (!userId) return; // Guard clause
-      
-      // Cleanup previous observers
-      if (savedTextsUnsubscribe) {
-        savedTextsUnsubscribe();
-      }
+      if (!userId) return;
+      if (savedTextsUnsubscribe) savedTextsUnsubscribe();
 
-      // RULE 1 Strict path schema alignment
       const collectionRef = collection(db, 'artifacts', appId, 'users', userId, 'saved_texts');
       
       savedTextsUnsubscribe = onSnapshot(collectionRef, (snapshot) => {
@@ -252,8 +226,7 @@
 
           itemEl.addEventListener('click', (e) => {
             if (e.target.closest('.delete-btn')) return;
-            const inputField = document.getElementById('customOledText');
-            inputField.value = data.text;
+            document.getElementById('customOledText').value = data.text;
             showToast("LOADED", `Loaded: "${data.text}"`);
           });
 
@@ -272,7 +245,6 @@
           listContainer.appendChild(itemEl);
         });
       }, (error) => {
-        console.error("Firestore Error: ", error);
         document.getElementById('savedTextsList').innerHTML = `<div class="text-xs text-red-400/80 italic py-1">Failed to read cloud storage.</div>`;
       });
     }
@@ -281,30 +253,19 @@
       const inputField = document.getElementById('customOledText');
       const textToSave = inputField.value.trim();
       
-      if (!textToSave) {
-        showToast("ERROR", "Please write a message first!", true);
-        return;
-      }
-      if (!currentUser) {
-        showToast("ERROR", "Sign-in in progress...", true);
-        return;
-      }
+      if (!textToSave) return;
+      if (!currentUser) return;
 
       const collectionRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
       try {
-        await addDoc(collectionRef, {
-          text: textToSave,
-          createdAt: Date.now()
-        });
+        await addDoc(collectionRef, { text: textToSave, createdAt: Date.now() });
         showToast("SAVED", "Message saved securely to cloud!");
       } catch (err) {
-        console.error("Save Error: ", err);
         showToast("ERROR", "Could not synchronize with cloud storage.", true);
       }
     });
   </script>
 
-  <!-- BLE SCRIPT ENGINE (With Hands-Free Native/Web Reconnect & Unpair API) -->
   <script>
     const SERVICE_UUID        = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
     const CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
@@ -313,7 +274,6 @@
     let rxCharacteristic = null;
     let gpsInterval = null;
     let isCapacitorActive = false;
-    let autoReconnectInterval = null;
 
     let cityName = "Kochi";
     let weatherDetails = "Cloudy 29C";
@@ -330,20 +290,28 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // DETECT ENVIRONMENT & INITIALIZE AUTO-RECONNECTION
+    // SAFE NATIVE HELPER: Converts native Unicode text arrays cleanly to avoid bridging payload memory exceptions
+    function stringToAsbValue(str) {
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(str);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    }
+
     window.addEventListener('load', async () => {
       const savedID = localStorage.getItem('mochi_device_id');
       const savedPIN = localStorage.getItem('mochi_device_pin');
       if (savedID) inputMochiID.value = savedID;
       if (savedPIN) inputMochiPIN.value = savedPIN;
 
-      // Determine if we have a paired device to show unpair button on boot
       const pairedDeviceAddress = localStorage.getItem('mochi_paired_address');
-      if (pairedDeviceAddress) {
-        unpairBtn.classList.remove('hidden');
-      }
+      if (pairedDeviceAddress) unpairBtn.classList.remove('hidden');
 
-      if (window.Capacitor && window.Capacitor.Plugins) {
+      // Detect if running inside a phone container app wrapper or a standard web browser
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
         isCapacitorActive = true;
         runtimeEngineText.textContent = "Capacitor Native Engine Active";
         runtimeEngineText.className = "text-[10px] text-green-400 font-bold uppercase tracking-wider block mt-1";
@@ -351,118 +319,9 @@
         isCapacitorActive = false;
         runtimeEngineText.textContent = "Standard Web Bluetooth Engine Active";
         runtimeEngineText.className = "text-[10px] text-purple-400/60 uppercase tracking-wider block mt-1";
-
-        // If Web browser mode, look for auto-reconnect devices cached in the keychain
-        if (navigator.bluetooth && navigator.bluetooth.getDevices) {
-          try {
-            const devices = await navigator.bluetooth.getDevices();
-            if (devices.length > 0) {
-              showToast("AUTO-CONNECT", "Found previously paired M-Buddy. Re-establishing link...");
-              attemptWebAutoConnect(devices[0]);
-            }
-          } catch (err) {
-            console.warn("Auto-connect scan failed: ", err);
-          }
-        }
       }
     });
 
-    // Web Auto-Connect pipeline
- async function handleCapacitorLink() {
-  const Ble = window.Capacitor.Plugins.BluetoothLe;
-  const targetPin = inputMochiPIN.value.trim() || "1234";
-
-  try {
-    connectionState.textContent = "INITIALIZING...";
-    
-    // CRITICAL: Explicitly pass the Android Location safety configuration
-    await Ble.initialize({ androidNeverForLocation: true });
-    
-    connectionState.textContent = "SCANNING...";
-    const device = await Ble.requestDevice({ serviceUUIDs: [SERVICE_UUID] });
-
-    if (!device || !device.deviceId) { onDisconnected(); return; }
-
-    connectionState.textContent = "CONNECTING...";
-    await Ble.connect({ deviceId: device.deviceId, timeout: 10000 });
-    
-    // Grace period for the native hardware layer
-    await new Promise(r => setTimeout(r, 800));
-
-    connectionState.textContent = "AUTHENTICATING...";
-    
-    const payloadStr = `AUTH:${targetPin}`;
-    const encodedValue = cleanToBase64(payloadStr);
-
-    await Ble.write({
-      deviceId: device.deviceId,
-      service: SERVICE_UUID,
-      characteristic: CHARACTERISTIC_UUID,
-      value: encodedValue
-    });
-
-    bluetoothDevice = device;
-    connectionState.textContent = (device.name || "M-BUDDY").toUpperCase();
-    connectionState.className = "text-2xl font-bold futuristic-title mt-1 text-green-400";
-    pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
-    pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
-    connectBtn.textContent = "Disconnect Link";
-    showToast("SUCCESS", "Directly linked over hardware channels.");
-
-  } catch (err) {
-    console.error("Safely captured native error:", err);
-    showToast("LINK FAILURE", err.message || "Write request timed out.", true);
-    onDisconnected();
-  }
-}
-
-    // Custom non-blocking visual Toast Engine
-    function showToast(title, message, isError = false) {
-      const container = document.getElementById('toastContainer');
-      const tTitle = document.getElementById('toastTitle');
-      const tMsg = document.getElementById('toastMessage');
-      const iconBox = document.getElementById('toastIcon');
-
-      tTitle.textContent = title;
-      tMsg.textContent = message;
-
-      if (isError) {
-        iconBox.className = "w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-400";
-        iconBox.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
-      } else {
-        iconBox.className = "w-8 h-8 rounded-full flex items-center justify-center bg-green-500/20 text-green-400";
-        iconBox.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-      }
-
-      container.classList.remove('opacity-0', '-translate-y-10');
-      container.classList.add('opacity-100', 'translate-y-0');
-
-      setTimeout(() => {
-        container.classList.remove('opacity-100', 'translate-y-0');
-        container.classList.add('opacity-0', '-translate-y-10');
-      }, 4000);
-    }
-
-    // Phone Clock sync
-    setInterval(() => {
-      const now = new Date();
-      const hrs = String(now.getHours()).padStart(2, '0');
-      const mins = String(now.getMinutes()).padStart(2, '0');
-      document.getElementById('appTime').textContent = `${hrs}:${mins}`;
-    }, 1000);
-
-    // Weather Parser Helper
-    function parseWeatherCode(code) {
-      if (code === 0) return "Clear";
-      if (code >= 1 && code <= 3) return "Cloudy";
-      if (code === 45 || code === 48) return "Foggy";
-      if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "Rainy";
-      if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return "Snowy";
-      if (code >= 95 && code <= 99) return "Stormy";
-      return "Clear";
-    }
-
-    // Dual-Engine connection handler
     connectBtn.addEventListener('click', async () => {
       if (isCapacitorActive) {
         handleCapacitorConnect();
@@ -471,39 +330,71 @@
       }
     });
 
-    // NATIVE UNPAIR BUTTON
-    unpairBtn.addEventListener('click', async () => {
-      showToast("UNPAIRING", "Clearing device bindings & pairing lock...");
-      
-      if (autoReconnectInterval) {
-        clearInterval(autoReconnectInterval);
-        autoReconnectInterval = null;
+    async function handleCapacitorConnect() {
+      if (bluetoothDevice) {
+        onDisconnected();
+        return;
       }
 
-      if (isCapacitorActive && bluetoothDevice) {
-        try {
-          const Ble = window.Capacitor.Plugins.BluetoothLe;
-          await Ble.disconnect({ deviceId: bluetoothDevice.deviceId });
-        } catch (e) {
-          console.warn("Unpair disconnect fail: ", e);
+      const Ble = window.Capacitor.Plugins.BluetoothLe;
+      const rawSuffix = inputMochiID.value.trim().toUpperCase();
+      const pinCode = inputMochiPIN.value.trim() || "1234";
+
+      if (saveCheck.checked) {
+        localStorage.setItem('mochi_device_id', rawSuffix);
+        localStorage.setItem('mochi_device_pin', pinCode);
+      }
+
+      try {
+        connectionState.textContent = "INITIALIZING...";
+        await Ble.initialize({ androidNeverForLocation: true });
+        
+        connectionState.textContent = "SCANNING...";
+        const device = await Ble.requestDevice({ serviceUUIDs: [SERVICE_UUID] });
+
+        if (!device || !device.deviceId) {
+          onDisconnected();
+          return;
         }
-      } else if (bluetoothDevice && bluetoothDevice.gatt && bluetoothDevice.gatt.connected) {
-        bluetoothDevice.gatt.disconnect();
+
+        connectionState.textContent = "CONNECTING...";
+        await Ble.connect({ deviceId: device.deviceId, timeout: 10000 });
+        
+        // Short grace period before data packet burst transmission
+        await new Promise(r => setTimeout(r, 600));
+
+        connectionState.textContent = "AUTHENTICATING...";
+        
+        const payloadStr = `AUTH:${pinCode}`;
+        const encodedValue = stringToAsbValue(payloadStr);
+
+        await Ble.write({
+          deviceId: device.deviceId,
+          service: SERVICE_UUID,
+          characteristic: CHARACTERISTIC_UUID,
+          value: encodedValue
+        });
+
+        bluetoothDevice = { deviceId: device.deviceId, name: device.name || "M-BUDDY" };
+        localStorage.setItem('mochi_paired_address', device.deviceId);
+
+        connectionState.textContent = (device.name || "M-BUDDY").toUpperCase();
+        connectionState.className = "text-2xl font-bold futuristic-title mt-1 text-green-400";
+        pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
+        pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
+        connectBtn.textContent = "Disconnect Link";
+        unpairBtn.classList.remove('hidden');
+
+        showToast("SUCCESS", "Directly linked over hardware channels.");
+        startAutomaticSync();
+
+      } catch (err) {
+        console.error("Capacitor Native BLE Error: ", err);
+        showToast("LINK FAILURE", err.message || "Handshake error.", true);
+        onDisconnected();
       }
+    }
 
-      localStorage.removeItem('mochi_paired_address');
-      localStorage.removeItem('mochi_device_id');
-      localStorage.removeItem('mochi_device_pin');
-      
-      inputMochiID.value = "";
-      inputMochiPIN.value = "1234";
-
-      unpairBtn.classList.add('hidden');
-      onDisconnected();
-      showToast("UNPAIRED SUCCESSFULLY", "Device cleared. M-Buddy is now open for other users!", false);
-    });
-
-    // Dual-Engine Web Connection Handler
     async function handleWebConnect() {
       if (bluetoothDevice && bluetoothDevice.gatt.connected) {
         bluetoothDevice.gatt.disconnect();
@@ -522,14 +413,10 @@
       if (saveCheck.checked) {
         localStorage.setItem('mochi_device_id', rawSuffix);
         localStorage.setItem('mochi_device_pin', pinCode);
-      } else {
-        localStorage.removeItem('mochi_device_id');
-        localStorage.removeItem('mochi_device_pin');
       }
 
       try {
         connectionState.textContent = "DISCOVERING...";
-        
         let searchFilter = { optionalServices: [SERVICE_UUID] };
         if (targetDeviceName) {
           searchFilter.filters = [{ name: targetDeviceName }];
@@ -552,142 +439,80 @@
 
         localStorage.setItem('mochi_paired_address', bluetoothDevice.id);
 
-        connectionState.textContent = bluetoothDevice.name;
-        connectionState.classList.add('text-green-400');
+        connectionState.textContent = bluetoothDevice.name.toUpperCase();
+        connectionState.className = "text-2xl font-bold futuristic-title mt-1 text-green-400";
         pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
         pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
-        connectBtn.textContent = "Securely Disconnect";
-        connectBtn.classList.replace('from-purple-600', 'from-red-600');
-        connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
-        unpairBtn.classList.remove('hidden');
-
-        showToast("SECURE PAIR COMPLETED", "Robot unlocked and fully synchronized!", false);
-        
-        // 🚀 Auto-engage telemetry and clock sync stream hands-free!
-        startAutomaticSync();
-      } catch (err) {
-        console.error("Bluetooth Connection Error: ", err);
-        showToast("LINK ERROR", "Could not complete secure Bluetooth handshake.", true);
-        onDisconnected();
-      }
-    }
-
-    async function handleCapacitorConnect() {
-      const Ble = window.Capacitor.Plugins.BluetoothLe;
-      
-      const rawSuffix = inputMochiID.value.trim().toUpperCase();
-      const pinCode = inputMochiPIN.value.trim() || "1234";
-
-      if (saveCheck.checked) {
-        localStorage.setItem('mochi_device_id', rawSuffix);
-        localStorage.setItem('mochi_device_pin', pinCode);
-      }
-
-      try {
-        connectionState.textContent = "SCANNING...";
-        await Ble.initialize();
-        
-        const device = await Ble.requestDevice({
-          services: [SERVICE_UUID]
-        });
-
-        connectionState.textContent = "CONNECTING...";
-        await Ble.connect({ deviceId: device.deviceId });
-        
-        connectionState.textContent = "AUTHENTICATING...";
-        
-        const encoder = new TextEncoder();
-        const dataBytes = Array.from(encoder.encode(`AUTH:${pinCode}`));
-
-        await Ble.write({
-          deviceId: device.deviceId,
-          service: SERVICE_UUID,
-          characteristic: CHARACTERISTIC_UUID,
-          value: btoa(String.fromCharCode.apply(null, dataBytes))
-        });
-
-        bluetoothDevice = { deviceId: device.deviceId, name: device.name };
-        
-        localStorage.setItem('mochi_paired_address', device.deviceId);
-
-        connectionState.textContent = device.name;
-        connectionState.classList.add('text-green-400');
-        pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-green-500";
-        pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
-        connectBtn.textContent = "Securely Disconnect";
-        connectBtn.classList.replace('from-purple-600', 'from-red-600');
-        connectBtn.classList.replace('to-indigo-600', 'to-pink-600');
+        connectBtn.textContent = "Disconnect Link";
         unpairBtn.classList.remove('hidden');
 
         showToast("SECURE PAIR COMPLETED", "Robot unlocked and fully synchronized!");
-        
-        // 🚀 Auto-engage telemetry and clock sync stream hands-free!
         startAutomaticSync();
       } catch (err) {
-        console.error("Capacitor Native BLE Error: ", err);
-        showToast("NATIVE BLE ERROR", "Could not link with native Bluetooth system.", true);
+        console.error("Bluetooth Connection Error: ", err);
+        showToast("LINK ERROR", "Could not complete Bluetooth handshake.", true);
         onDisconnected();
       }
     }
 
-    // ADAPTIVE DUAL-ENGINE TRANSMISSION WRITER
     async function sendCommand(command) {
       if (isCapacitorActive) {
         if (!bluetoothDevice) return;
         const Ble = window.Capacitor.Plugins.BluetoothLe;
         try {
-          const encoder = new TextEncoder();
-          const dataBytes = Array.from(encoder.encode(command));
+          const encoded = stringToAsbValue(command);
           await Ble.write({
             deviceId: bluetoothDevice.deviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: btoa(String.fromCharCode.apply(null, dataBytes))
+            value: encoded
           });
         } catch (err) {
           console.error("Capacitor Write Error: ", err);
-          throw err;
         }
       } else {
-        if (!rxCharacteristic) throw new Error("No active characteristic");
+        if (!rxCharacteristic) return;
         const encoder = new TextEncoder();
         const data = encoder.encode(command);
-        
-        // ADAPTIVE FALLBACK WRITING PROTOCOL
         try {
           if (typeof rxCharacteristic.writeValueWithResponse === 'function') {
             await rxCharacteristic.writeValueWithResponse(data);
-          } else if (typeof rxCharacteristic.writeValueWithoutResponse === 'function') {
-            await rxCharacteristic.writeValueWithoutResponse(data);
           } else {
             await rxCharacteristic.writeValue(data);
           }
         } catch (err) {
-          console.error("Primary write failed, attempting direct legacy write...", err);
-          try {
-            await rxCharacteristic.writeValue(data);
-          } catch (legacyErr) {
-            console.error("All adaptive write attempts exhausted:", legacyErr);
-            throw legacyErr;
-          }
+          console.error("Web BLE Write Error: ", err);
         }
       }
     }
 
-    // 🚀 DUAL-ENGINE GEOLOCATION & TIME SYNC CONTROLLERS
-    function startAutomaticSync() {
-      if (gpsInterval) {
-        clearInterval(gpsInterval);
-        gpsInterval = null;
+    unpairBtn.addEventListener('click', async () => {
+      if (isCapacitorActive && bluetoothDevice) {
+        try {
+          await window.Capacitor.Plugins.BluetoothLe.disconnect({ deviceId: bluetoothDevice.deviceId });
+        } catch (e) {}
+      } else if (bluetoothDevice && bluetoothDevice.gatt && bluetoothDevice.gatt.connected) {
+        bluetoothDevice.gatt.disconnect();
       }
 
+      localStorage.removeItem('mochi_paired_address');
+      localStorage.removeItem('mochi_device_id');
+      localStorage.removeItem('mochi_device_pin');
+      
+      inputMochiID.value = "";
+      inputMochiPIN.value = "1234";
+      unpairBtn.classList.add('hidden');
+      onDisconnected();
+      showToast("UNPAIRED", "Device cleared configurations.");
+    });
+
+    function startAutomaticSync() {
+      if (gpsInterval) clearInterval(gpsInterval);
       gpsBtn.textContent = "Streaming Telemetry...";
-      showToast("LOCATION SYNCING", "Acquiring live location coordinates & local weather data...", false);
 
       navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
-
         try {
           const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
             headers: { 'User-Agent': 'M-Buddy-Companion-App-2026' }
@@ -700,51 +525,29 @@
           const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
           const weatherData = await weatherRes.json();
           const temp = Math.round(weatherData.current_weather.temperature);
-          const wCode = weatherData.current_weather.weathercode;
-          const wDesc = parseWeatherCode(wCode);
-
-          weatherDetails = `${wDesc} ${temp}C`;
+          weatherDetails = `${parseWeatherCode(weatherData.current_weather.weathercode)} ${temp}C`;
           if (weatherDetails.length > 12) weatherDetails = weatherDetails.substring(0, 12);
           document.getElementById('appWeather').textContent = weatherDetails;
-
-          showToast("SYNC LINKED", "Location, weather, and time synchronized with M-Buddy.");
         } catch (e) {
-          console.error("API Fetch Error: ", e);
-          cityName = "Kochi";
-          weatherDetails = "Sunny 31C";
-          document.getElementById('appCity').textContent = cityName;
-          document.getElementById('appWeather').textContent = weatherDetails;
+          document.getElementById('appCity').textContent = "Kochi";
+          document.getElementById('appWeather').textContent = "Sunny 31C";
         }
-
-        // Send first synchronization packet immediately without waiting for the 2-second tick!
         sendSyncPacket();
-      }, (err) => {
-        console.error("Geolocation Error: ", err);
-        showToast("LOCATION DENIED", "Using default fallback metrics.", true);
-        cityName = "Kochi";
-        weatherDetails = "Sunny 31C";
-        document.getElementById('appCity').textContent = cityName;
-        document.getElementById('appWeather').textContent = weatherDetails;
-
-        // Send first synchronization packet immediately without waiting for the 2-second tick!
+      }, () => {
+        document.getElementById('appCity').textContent = "Kochi";
+        document.getElementById('appWeather').textContent = "Sunny 31C";
         sendSyncPacket();
-      }, {
-        enableHighAccuracy: true
       });
 
-      gpsInterval = setInterval(() => {
-        sendSyncPacket();
-      }, 2000);
+      gpsInterval = setInterval(sendSyncPacket, 2000);
     }
 
     function sendSyncPacket() {
       const now = new Date();
       const hrs = String(now.getHours()).padStart(2, '0');
       const mins = String(now.getMinutes()).padStart(2, '0');
-      const timeStr = `${hrs}:${mins}`;
       const customText = customOledTextInput.value.trim();
-      
-      const packet = `DASH:${timeStr}|${cityName}|${weatherDetails}|${customText}`;
+      const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
     }
 
@@ -754,16 +557,10 @@
         gpsInterval = null;
       }
       gpsBtn.textContent = "Start Sync Stream";
-      showToast("SYNC DEACTIVATED", "Telemetry transmission stopped.");
     }
 
-    // Toggle Button Listener
     gpsBtn.addEventListener('click', () => {
-      if (gpsInterval) {
-        stopSync();
-      } else {
-        startAutomaticSync();
-      }
+      if (gpsInterval) stopSync(); else startAutomaticSync();
     });
 
     function onDisconnected() {
@@ -772,19 +569,42 @@
       pingDot.className = "relative inline-flex rounded-full h-4 w-4 bg-red-500";
       pingRing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75";
       connectBtn.textContent = "Search & Authenticate";
-      connectBtn.classList.replace('from-red-600', 'from-purple-600');
-      connectBtn.classList.replace('to-pink-600', 'to-indigo-600');
-      rxCharacteristic = null;
       bluetoothDevice = null;
-      
-      // Stop dynamic telemetry streaming
       stopSync();
-      
-      // If we have an unpair device address but are disconnected, restart native background scan
-      const pairedDeviceAddress = localStorage.getItem('mochi_paired_address');
-      if (isCapacitorActive && pairedDeviceAddress) {
-        startNativeAutoReconnectLoop(pairedDeviceAddress);
+    }
+
+    function parseWeatherCode(code) {
+      if (code === 0) return "Clear";
+      if (code >= 1 && code <= 3) return "Cloudy";
+      if (code === 45 || code === 48) return "Foggy";
+      if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "Rainy";
+      return "Clear";
+    }
+
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('appTime').textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    }, 1000);
+
+    function showToast(title, message, isError = false) {
+      const container = document.getElementById('toastContainer');
+      const tTitle = document.getElementById('toastTitle');
+      const tMsg = document.getElementById('toastMessage');
+      const iconBox = document.getElementById('toastIcon');
+      tTitle.textContent = title; tMsg.textContent = message;
+      if (isError) {
+        iconBox.className = "w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-400";
+        iconBox.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+      } else {
+        iconBox.className = "w-8 h-8 rounded-full flex items-center justify-center bg-green-500/20 text-green-400";
+        iconBox.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
       }
+      container.classList.remove('opacity-0', '-translate-y-10');
+      container.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        container.classList.remove('opacity-100', 'translate-y-0');
+        container.classList.add('opacity-0', '-translate-y-10');
+      }, 4000);
     }
   </script>
 </body>
