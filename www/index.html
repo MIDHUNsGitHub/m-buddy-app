@@ -344,25 +344,21 @@
     // native Android Java stack decoding violations (IllegalArgumentException).
    
     // ==========================================
-    // STABLE STANDARD BASE64 ENCODER
+    // STABLE NATIVE BYTE ARRAY FORMATTER
     // ==========================================
     function toBase64(str) {
       try {
-        // Step 1: Force standard UTF-8 encoding array
+        // Step 1: Safely encode the standard string into standard binary byte units
         const encoder = new TextEncoder();
-        const bytes = encoder.encode(str);
+        const uint8 = encoder.encode(str);
         
-        // Step 2: Extract binary byte array map safely
-        let binaryStr = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binaryStr += String.fromCharCode(bytes[i]);
-        }
-        
-        // Step 3: Yield perfectly clean padded standard Base64 string wrapper
-        return btoa(binaryStr);
+        // Step 2: Convert the array into a pure list of raw integer bytes [65, 85, 84, 72...]
+        // This bypasses base64 string decoding inside modern Android WebViews 
+        // and completely eliminates native Java thread termination crashes.
+        return Array.from(uint8);
       } catch (err) {
-        console.error("Base64 processing error:", err);
-        return "";
+        console.error("Binary byte conversion error:", err);
+        return [];
       }
     }
 
