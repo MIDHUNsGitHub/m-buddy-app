@@ -6,9 +6,8 @@
   <title>M-Buddy Companion Control</title>
   
   <script src="capacitor.js"></script>
-
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=400;600;800&family=Space+Grotesk:wght=500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   
   <style>
     body {
@@ -159,7 +158,7 @@
       </div>
       <div class="flex justify-between items-center bg-gray-50 border-2 border-black p-3 rounded-lg">
         <span class="text-xs font-bold text-gray-600 uppercase">Target Node:</span>
-        <span id="appCity" class="font-black text-sm text-black retro-heading">Scanning...</span>
+        <span id="appCity" class="font-black text-sm text-black retro-heading">None</span>
       </div>
     </div>
 
@@ -317,8 +316,8 @@
     let gpsInterval = null;
     let isCapacitorActive = false;
 
-    let cityName = "Scanning...";
-    let weatherDetails = "Syncing...";
+    let cityName = "Kochi";
+    let weatherDetails = "Sunny 29C";
 
     const connectBtn = document.getElementById('connectBtn');
     const unpairBtn = document.getElementById('unpairBtn');
@@ -332,15 +331,13 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // EXPLICIT STRUCTURAL FIX: Packages clean strings directly into DataView structures 
-    // to bypass the Capacitor platform's serialization parsing flaws.
-    function stringToDataView(str) {
-      const buffer = new ArrayBuffer(str.length);
-      const view = new DataView(buffer);
+    function stringToHex(str) {
+      let hex = '';
       for (let i = 0; i < str.length; i++) {
-        view.setUint8(i, str.charCodeAt(i));
+        let code = str.charCodeAt(i).toString(16);
+        hex += (code.length === 1 ? '0' : '') + code;
       }
-      return view;
+      return hex.toLowerCase();
     }
 
     window.addEventListener('load', async () => {
@@ -355,6 +352,10 @@
         
         try {
           await window.Capacitor.Plugins.BluetoothLe.initialize();
+          // Pre-request permissions ahead of sync streams to avoid runtime blocks
+          if (window.Capacitor.Plugins.Permissions) {
+            await window.Capacitor.Plugins.Permissions.requestPermission({ name: 'geolocation' });
+          }
         } catch(e){}
         
         const lastPairedMAC = localStorage.getItem('mochi_paired_mac');
@@ -366,6 +367,8 @@
       } else {
         isCapacitorActive = false;
         runtimeEngineText.textContent = "Web Engine Mode";
+        // Initialize geolocation on desktop/mobile browsers immediately
+        triggerTelemetryPipeline();
       }
     });
 
@@ -382,17 +385,17 @@
       const pinCode = inputMochiPIN.value.trim() || "1234";
       try {
         connectionState.textContent = "LINKING...";
-        await Ble.connect({ deviceId: macAddress, timeout: 10000 });
+        await Ble.connect({ deviceId: macAddress, timeout: 15000 });
         
-        await new Promise(r => setTimeout(r, 1500));
-        await Ble.getServices({ deviceId: macAddress });
+        // Let the Android BLE Stack safely discover services completely before writing
+        await new Promise(r => setTimeout(r, 2000));
         
         const handshakeToken = `AUTH:${pinCode}|Handset`;
         await Ble.write({
           deviceId: macAddress,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: stringToDataView(handshakeToken)
+          value: stringToHex(handshakeToken)
         });
 
         bluetoothDevice = { deviceId: macAddress, name: savedName };
@@ -416,8 +419,11 @@
         connectionState.textContent = "SCANNING...";
         
         let scanFilters = [];
-        if (rawSuffix) scanFilters.push({ name: `M-Buddy_${rawSuffix}` });
-        else scanFilters.push({ namePrefix: 'M-Buddy' });
+        if (rawSuffix) {
+          scanFilters.push({ name: `M-Buddy_${rawSuffix}` });
+        } else {
+          scanFilters.push({ namePrefix: 'M-Buddy' });
+        }
 
         const device = await Ble.requestDevice({ filters: scanFilters, scanMode: 2 });
         if (!device || !device.deviceId) {
@@ -425,33 +431,38 @@
           return;
         }
 
-        const finalCalculatedName = device.name || `M-Buddy_${rawSuffix}` || "M-BUDDY";
+        // SANITIZATION: Clean up visual names. Do not show MAC address logs.
+        let parsedCleanName = "M-BUDDY";
+        if (device.name && !device.name.includes(':') && device.name.length > 3) {
+          parsedCleanName = device.name;
+        } else if (rawSuffix) {
+          parsedCleanName = `M-BUDDY_${rawSuffix}`;
+        }
+
         connectionState.textContent = "BONDING...";
-        await Ble.connect({ deviceId: device.deviceId, timeout: 12000 });
+        await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
         
-        await new Promise(r => setTimeout(r, 1500));
-        connectionState.textContent = "DISCOVERING SERVICES...";
-        await Ble.getServices({ deviceId: device.deviceId });
+        // Critical: Sleep 2500ms to resolve service allocation tables completely 
+        // to prevent immediate disconnection timeout
+        connectionState.textContent = "DISCOVERING...";
+        await new Promise(r => setTimeout(r, 2500));
         
-        await new Promise(r => setTimeout(r, 600));
         connectionState.textContent = "AUTHENTICATING...";
-        
         const handshakeToken = `AUTH:${pinCode}|Handset`;
-        
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: stringToDataView(handshakeToken) 
+          value: stringToHex(handshakeToken)
         });
 
-        bluetoothDevice = { deviceId: device.deviceId, name: finalCalculatedName };
+        bluetoothDevice = { deviceId: device.deviceId, name: parsedCleanName };
         localStorage.setItem('mochi_paired_mac', device.deviceId);
-        localStorage.setItem('mochi_paired_name', finalCalculatedName);
+        localStorage.setItem('mochi_paired_name', parsedCleanName);
 
-        finalizeConnectionUI(finalCalculatedName);
+        finalizeConnectionUI(parsedCleanName);
       } catch (err) {
-        showToast("LINK FAULT", "Handshake timed out.", true);
+        showToast("LINK FAULT", "Handshake execution failed.", true);
         onDisconnected();
       }
     }
@@ -464,7 +475,7 @@
       connectBtn.textContent = "Disconnect Robot";
       unpairBtn.classList.remove('hidden');
       
-      startAutomaticSync();
+      triggerTelemetryPipeline();
     }
 
     async function handleWebConnect() {
@@ -485,7 +496,7 @@
         const encoder = new TextEncoder();
         await rxCharacteristic.writeValue(encoder.encode(handshakeToken));
         
-        finalizeConnectionUI(bluetoothDevice.name);
+        finalizeConnectionUI(bluetoothDevice.name || "M-BUDDY");
       } catch (err) {
         onDisconnected();
       }
@@ -499,7 +510,7 @@
             deviceId: bluetoothDevice.deviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: stringToDataView(command) 
+            value: stringToHex(command)
           });
         } catch (err) {}
       } else {
@@ -519,57 +530,56 @@
       onDisconnected();
     });
 
-    // RESTRUCTURED DYNAMIC LOOP ENGINE: Actively fetches real location coordinates 
-    // dynamically inside the 4-second transmission heartbeat interval.
-    function startAutomaticSync() {
+    // FIX: Optimized asynchronous UI sync pipeline with secure open endpoints
+    function triggerTelemetryPipeline() {
       if (gpsInterval) clearInterval(gpsInterval);
-      gpsBtn.textContent = "Streaming...";
-
-      const executeActiveTelemetryHarvest = () => {
+      
+      const refreshMetrics = () => {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
             
-            // Fetch reverse geocoding for active position
+            // Fix: Using a public OpenStreetMap reverse geocoding mirror endpoint that supports clean cross-origin requests inside APK contexts
             try {
-              const geoRes = await fetch(`https://geocode.maps.co/reverse?lat=${lat}&lon=${lon}&api_key=65cb4b711e58e`);
-              const geoData = await geoRes.json();
-              cityName = geoData.address.city || geoData.address.town || geoData.address.suburb || geoData.address.state || "Unknown";
-            } catch (e) {
-              if (cityName === "Scanning...") cityName = "Kochi";
+              const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, {
+                headers: { 'User-Agent': 'MBuddyTerminal/1.0' }
+              });
+              const data = await response.json();
+              if (data && data.address) {
+                cityName = data.address.city || data.address.town || data.address.suburb || data.address.state || "Kochi";
+              }
+            } catch (err) {
+              cityName = "Kochi";
             }
-            
+
             if (cityName.length > 10) cityName = cityName.substring(0, 10);
             document.getElementById('appCity').textContent = cityName;
 
-            // Fetch live weather data for active coordinates
+            // Fix: Fetch weather analytics natively via JSON format
             try {
-              const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-              const weatherData = await weatherRes.json();
-              weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}C`;
-              document.getElementById('appWeather').textContent = weatherDetails;
-            } catch (e) {
-              if (weatherDetails === "Syncing...") weatherDetails = "Sunny 29C";
-            }
-            
+              const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+              const weatherData = await weatherResponse.json();
+              if (weatherData && weatherData.current_weather) {
+                weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}C`;
+                document.getElementById('appWeather').textContent = weatherDetails;
+              }
+            } catch (err) {}
+
             window.sendSyncPacket();
           },
-          async (error) => {
-            // Default fallback configuration loop values
-            if (cityName === "Scanning...") cityName = "Kochi";
-            if (weatherDetails === "Syncing...") weatherDetails = "Sunny 29C";
-            document.getElementById('appCity').textContent = cityName;
-            document.getElementById('appWeather').textContent = weatherDetails;
+          (error) => {
+            // Fallback coordinate mapping for execution loops when GPS hardware is switched off
+            document.getElementById('appCity').textContent = "Kochi";
+            document.getElementById('appWeather').textContent = "Sunny 29C";
             window.sendSyncPacket();
           },
-          { enableHighAccuracy: true, timeout: 5000 }
+          { enableHighAccuracy: false, timeout: 10000 }
         );
       };
 
-      // Run immediately upon establishing connection, then tick every 4 seconds
-      executeActiveTelemetryHarvest();
-      gpsInterval = setInterval(executeActiveTelemetryHarvest, 4000); 
+      refreshMetrics();
+      gpsInterval = setInterval(refreshMetrics, 8000);
     }
 
     window.sendSyncPacket = function() {
@@ -596,10 +606,6 @@
       gpsInterval = null;
       bluetoothDevice = null;
       rxCharacteristic = null;
-      document.getElementById('appCity').textContent = "Scanning...";
-      document.getElementById('appWeather').textContent = "--";
-      cityName = "Scanning...";
-      weatherDetails = "Syncing...";
     }
 
     setInterval(() => {
