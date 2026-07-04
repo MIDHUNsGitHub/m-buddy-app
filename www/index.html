@@ -346,19 +346,27 @@
     // ==========================================
     // STABLE NATIVE BYTE ARRAY FORMATTER
     // ==========================================
+    // ==========================================
+    // STABLE STANDARD BASE64 ENCODER
+    // ==========================================
     function toBase64(str) {
       try {
-        // Step 1: Safely encode the standard string into standard binary byte units
+        // Step 1: Force an explicit standard UTF-8 binary array representation
         const encoder = new TextEncoder();
-        const uint8 = encoder.encode(str);
+        const bytes = encoder.encode(str);
         
-        // Step 2: Convert the array into a pure list of raw integer bytes [65, 85, 84, 72...]
-        // This bypasses base64 string decoding inside modern Android WebViews 
-        // and completely eliminates native Java thread termination crashes.
-        return Array.from(uint8);
+        // Step 2: Extract binary byte map safely without broken unescape shortcuts
+        let binaryStr = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binaryStr += String.fromCharCode(bytes[i]);
+        }
+        
+        // Step 3: Returns a clean standard padded base64 string wrapper
+        // The Capacitor plugin decodes this string into raw text bytes over the air!
+        return btoa(binaryStr);
       } catch (err) {
-        console.error("Binary byte conversion error:", err);
-        return [];
+        console.error("Base64 processing error:", err);
+        return "";
       }
     }
 
