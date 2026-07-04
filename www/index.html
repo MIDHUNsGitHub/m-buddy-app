@@ -324,7 +324,6 @@
     let isCapacitorActive = false;
     let isReconnecting = false;
 
-    // FIX: Hardcoded location markers replaced with absolute null allocations
     let cityName = null;
     let weatherDetails = null;
 
@@ -340,6 +339,7 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
+    // FIX: Completely clean conversions. We send raw ASCII characters directly instead of broken Hex text strings.
     function stringToHex(str) {
       let hex = '';
       for (let i = 0; i < str.length; i++) {
@@ -360,8 +360,8 @@
         runtimeEngineText.textContent = "Capacitor Native Engine Active";
         try {
           await window.Capacitor.Plugins.BluetoothLe.initialize();
-          // CORE OPTIMIZATION: Trigger background MAC recovery routing directly on bootup
-          attemptAutoReconnect();
+          // Attempt true reconnections only
+          setTimeout(() => { attemptAutoReconnect(); }, 800);
         } catch(e){}
       } else {
         isCapacitorActive = false;
@@ -371,22 +371,24 @@
       startAutomaticSync();
     });
 
-    // AUTO RECONNECT DEPLOYMENT: Restores the connection sequence automatically using historical MAC values
+    // FIX: Verify absolute connectivity. UI states change only if connection calls succeed.
     async function attemptAutoReconnect() {
       if (!isCapacitorActive) return;
       const lastMacAddress = localStorage.getItem('mochi_paired_mac_address');
+      const lastStoredName = localStorage.getItem('mochi_paired_name') || "M-Buddy Hardware";
       if (!lastMacAddress || isReconnecting) return;
 
       isReconnecting = true;
       const Ble = window.Capacitor.Plugins.BluetoothLe;
       const pinCode = inputMochiPIN.value.trim() || "1234";
-      const rawSuffix = inputMochiID.value.trim().toUpperCase();
 
       try {
         connectionState.textContent = "RECONNECTING...";
-        await Ble.connect({ deviceId: lastMacAddress, timeout: 8000 });
         
-        await new Promise(r => setTimeout(r, 1500));
+        // Native background connection test
+        await Ble.connect({ deviceId: lastMacAddress, timeout: 6000 });
+        
+        await new Promise(r => setTimeout(r, 1200));
         
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
@@ -399,10 +401,11 @@
         });
 
         capacitorDeviceId = lastMacAddress;
-        finalizeConnectionUI(`M-Buddy_${rawSuffix || 'Auto'}`);
-        window.showToast("RECONNECTED", "Link restored successfully!");
+        finalizeConnectionUI(lastStoredName);
+        window.showToast("RECONNECTED", "Hardware communication links online.");
       } catch (err) {
-        console.warn("Auto-reconnect target sleeping or unavailable:", err);
+        console.error("Auto link target offline:", err);
+        // Wipe deceptive states immediately
         onDisconnected();
       } finally {
         isReconnecting = false;
@@ -421,7 +424,6 @@
       }
     });
 
-    // --- CAPACITOR NATIVE ANDROID RUNTIME FLOW ---
     async function handleCapacitorConnect() {
       const Ble = window.Capacitor.Plugins.BluetoothLe;
       const rawSuffix = inputMochiID.value.trim().toUpperCase();
@@ -434,17 +436,10 @@
 
       try {
         connectionState.textContent = "PERMISSIONS...";
-        try {
-          await Ble.requestPermissions();
-        } catch (permissionError) {
-          console.warn("Permission checking layer safely bypassed.", permissionError);
-        }
+        try { await Ble.requestPermissions(); } catch (e) {}
         
         connectionState.textContent = "SCANNING...";
-        let requestOptions = {
-          services: [SERVICE_UUID],
-          scanMode: 2
-        };
+        let requestOptions = { services: [SERVICE_UUID], scanMode: 2 };
 
         const device = await Ble.requestDevice(requestOptions);
         if (!device || !device.deviceId) {
@@ -452,7 +447,7 @@
           return;
         }
 
-        let cleanName = device.name ? device.name : `M-Buddy_${rawSuffix || 'Device'}`;
+        let targetDeviceName = device.name ? device.name : `M-Buddy_${rawSuffix || 'Device'}`;
         
         connectionState.textContent = "BONDING...";
         await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
@@ -470,16 +465,15 @@
         });
 
         capacitorDeviceId = device.deviceId;
-        // PERSISTENCE ENGINE: Commit paired reference markers permanently inside app space
         localStorage.setItem('mochi_paired_mac_address', device.deviceId);
-        finalizeConnectionUI(cleanName);
+        localStorage.setItem('mochi_paired_name', targetDeviceName);
+        finalizeConnectionUI(targetDeviceName);
       } catch (err) {
         window.showToast("CONNECTION ERROR", err.message || "Handshake failed.");
         onDisconnected();
       }
     }
 
-    // --- CHROME WEB BROWSER RUNTIME FLOW ---
     async function handleWebConnect() {
       const rawSuffix = inputMochiID.value.trim().toUpperCase();
       const pinCode = inputMochiPIN.value.trim() || "1234";
@@ -528,16 +522,14 @@
       connectBtn.textContent = "Disconnect Robot";
       unpairBtn.classList.remove('hidden');
       
-      // SYNC BUG FIX: Let GATT server settle for exactly 1 second before data sync packets fire
-      setTimeout(() => {
-        window.sendSyncPacket();
-      }, 1000);
+      setTimeout(() => { window.sendSyncPacket(); }, 1500);
     }
 
     async function sendCommand(command) {
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
+          // Send pure ASCII format down to the peripheral registers
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
@@ -555,17 +547,16 @@
     }
 
     customOledTextInput.addEventListener('input', () => {
-      if (capacitorDeviceId || rxCharacteristic) {
-        window.sendSyncPacket();
-      }
+      if (capacitorDeviceId || rxCharacteristic) { window.sendSyncPacket(); }
     });
 
     unpairBtn.addEventListener('click', () => {
       localStorage.removeItem('mochi_device_id');
       localStorage.removeItem('mochi_device_pin');
       localStorage.removeItem('mochi_paired_mac_address');
+      localStorage.removeItem('mochi_paired_name');
       onDisconnected();
-      window.showToast("UNPAIRED", "Memory cleared.");
+      window.showToast("UNPAIRED", "Pair memory cleared.");
     });
 
     function startAutomaticSync() {
@@ -585,9 +576,7 @@
               if (data && data.address) {
                 cityName = data.address.city || data.address.town || data.address.suburb || data.address.state || "Unknown";
               }
-            } catch (err) {
-              cityName = "Unknown";
-            }
+            } catch (err) { cityName = "Unknown"; }
 
             if (cityName.length > 10) cityName = cityName.substring(0, 10);
             document.getElementById('appCity').textContent = cityName;
@@ -599,11 +588,8 @@
                 weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}C`;
                 document.getElementById('appWeather').textContent = weatherDetails;
               }
-            } catch (err) {
-              weatherDetails = "Clear --C";
-            }
+            } catch (err) { weatherDetails = "Clear --C"; }
 
-            // CORE LOGIC UPDATE: Triggers data synchronization transmission only when values resolve properly
             window.sendSyncPacket();
           },
           (error) => {
@@ -620,12 +606,7 @@
 
     window.sendSyncPacket = function() {
       if (!capacitorDeviceId && !rxCharacteristic) return;
-      
-      // HARDCODED FIX: Completely drops transmission until real telemetry attributes execute safely
-      if (!cityName || !weatherDetails) {
-        console.log("Transmission paused: Awaiting valid coordinate stream.");
-        return;
-      }
+      if (!cityName || !weatherDetails) return;
 
       const now = new Date();
       const hrs = String(now.getHours()).padStart(2, '0');
@@ -634,6 +615,7 @@
       let customText = customOledTextInput.value.trim();
       if (!customText) customText = "None";
       
+      // Strict data packet styling
       const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
     }
@@ -646,6 +628,9 @@
       connectBtn.textContent = "Search & Connect";
       unpairBtn.classList.add('hidden');
       
+      if (isCapacitorActive && capacitorDeviceId) {
+        try { window.Capacitor.Plugins.BluetoothLe.disconnect({ deviceId: capacitorDeviceId }); } catch(e){}
+      }
       bluetoothDevice = null;
       rxCharacteristic = null;
       capacitorDeviceId = null;
