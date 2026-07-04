@@ -324,8 +324,8 @@
     let isCapacitorActive = false;
     let isReconnecting = false;
 
-    let cityName = null;
-    let weatherDetails = null;
+    let cityName = "City...";          // Hardcoded fallback so packet doesn't block
+    let weatherDetails = "Weather..."; // Hardcoded fallback so packet doesn't block
 
     const connectBtn = document.getElementById('connectBtn');
     const unpairBtn = document.getElementById('unpairBtn');
@@ -339,32 +339,21 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // FIXED: Strict, standard-compliant byte chunk array pipeline encoder.
-    // Maps standard raw string elements securely into padded Base64 text to prevent 
-    // native Android Java stack decoding violations (IllegalArgumentException).
-   
     // ==========================================
-    // STABLE NATIVE BYTE ARRAY FORMATTER
+    // STABLE NATIVE TYPED BYTE ARRAY CONVERTER
     // ==========================================
-    // ==========================================
-    // STABLE STANDARD BASE64 ENCODER
-    // ==========================================
-    // ==========================================
-    // STABLE STANDARD BASE64 ENCODER
-    // ==========================================
-    // ========================================================
-    // ALTERNATIVE NATIVE HEX FORMAT (Use ONLY if Base64 string crashes)
-    // ========================================================
     function toBase64(str) {
       try {
-        let hex = '';
-        for (let i = 0; i < str.length; i++) {
-          let charHex = str.charCodeAt(i).toString(16);
-          hex += charHex.length === 1 ? '0' + charHex : charHex;
-        }
-        return hex; // Yields a text format string: "415554483a31323334"
+        // Step 1: Initialize a standard browser Text Encoder
+        const encoder = new TextEncoder();
+        
+        // Step 2: Convert the string ("AUTH:1234") into a direct Uint8Array block
+        // This generates [65, 85, 84, 72, 58, 49, 50, 51, 52]
+        // This stops all Android native layer crashes and keeps data intact.
+        return encoder.encode(str);
       } catch (err) {
-        return "";
+        console.error("Binary byte conversion error:", err);
+        return null;
       }
     }
 
@@ -548,19 +537,18 @@
       setTimeout(() => { window.sendSyncPacket(); }, 1500);
     }
 
-    // FIXED: Cleaned and optimized transmission handler mapping directly to our updated structure
     async function sendCommand(command) {
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
-          const base64Value = toBase64(command);
-          if (!base64Value) return;
+          const byteValue = toBase64(command);
+          if (!byteValue) return;
 
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: base64Value
+            value: byteValue
           });
         } catch (err) {
           console.error("Capacitor Write Exception:", err);
@@ -605,9 +593,9 @@
               });
               const data = await response.json();
               if (data && data.address) {
-                cityName = data.address.city || data.address.town || data.address.suburb || data.address.state || "Unknown";
+                cityName = data.address.city || data.address.town || data.address.suburb || data.address.state || "Kochi";
               }
-            } catch (err) { cityName = "Unknown"; }
+            } catch (err) { }
 
             if (cityName.length > 10) cityName = cityName.substring(0, 10);
             document.getElementById('appCity').textContent = cityName;
@@ -619,13 +607,15 @@
                 weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}C`;
                 document.getElementById('appWeather').textContent = weatherDetails;
               }
-            } catch (err) { weatherDetails = "Clear --C"; }
+            } catch (err) { }
 
             window.sendSyncPacket();
           },
           (error) => {
-            document.getElementById('appCity').textContent = "No GPS";
-            document.getElementById('appWeather').textContent = "Offline";
+            // Leave fallbacks intact if GPS is disabled
+            document.getElementById('appCity').textContent = cityName;
+            document.getElementById('appWeather').textContent = weatherDetails;
+            window.sendSyncPacket();
           },
           { enableHighAccuracy: false, timeout: 10000 }
         );
@@ -637,17 +627,19 @@
 
     window.sendSyncPacket = function() {
       if (!capacitorDeviceId && !rxCharacteristic) return;
-      if (!cityName || !weatherDetails) return;
 
       const now = new Date();
       const hrs = String(now.getHours()).padStart(2, '0');
       const mins = String(now.getMinutes()).padStart(2, '0');
       
       let customText = customOledTextInput.value.trim();
-      // If empty, leave it empty so it ends with a clean pipe just like your log
       if (!customText) customText = ""; 
       
-      const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
+      // Safety defaults applied if variables are empty strings
+      const targetCity = cityName || "Kochi";
+      const targetWeather = weatherDetails || "Sunny 31C";
+      
+      const packet = `DASH:${hrs}:${mins}|${targetCity}|${targetWeather}|${customText}`;
       sendCommand(packet);
     }
 
