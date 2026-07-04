@@ -348,22 +348,13 @@
     // ========================================================
     // HYBRID SAFE BASE64 CONVERTER (FIXES "VALUE REQUIRED")
     // ========================================================
-    function toBase64(str) {
-      try {
-        // Step 1: Create a safe byte stream from character codes
-        let binaryStr = '';
-        for (let i = 0; i < str.length; i++) {
-          binaryStr += String.fromCharCode(str.charCodeAt(i) & 0xff);
-        }
-        
-        // Step 2: Return a standard Base64 string
-        // This provides the exact string type Capacitor expects for the "value" property
-        return btoa(binaryStr);
-      } catch (err) {
-        console.error("Base64 conversion error:", err);
-        return "";
-      }
-    }
+   function toBase64(str) {
+  let arr = [];
+  for (let i = 0; i < str.length; i++) {
+    arr.push(str.charCodeAt(i) & 0xff);
+  }
+  return arr; // Returns [65, 85, 84, 72...]
+}
 
     window.addEventListener('load', async () => {
       const savedID = localStorage.getItem('mochi_device_id');
@@ -477,11 +468,12 @@
           throw new Error("Handshake string transformation failed.");
         }
         
+        // And change the Ble.write blocks to explicitly map the values:
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: base64Handshake
+          value: window.Capacitor.DataUtils.toBase64(new Uint8Array(base64Handshake)) // Uses native utility helper!
         });
 
         capacitorDeviceId = device.deviceId;
