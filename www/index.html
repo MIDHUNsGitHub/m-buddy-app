@@ -324,7 +324,7 @@
     let isCapacitorActive = false;
     let isReconnecting = false;
 
-    // FIX: Core telemetry tracking is now null initialized to avoid transmitting hardcoded dummy metrics
+    // FIX: Hardcoded location markers replaced with absolute null allocations
     let cityName = null;
     let weatherDetails = null;
 
@@ -360,7 +360,7 @@
         runtimeEngineText.textContent = "Capacitor Native Engine Active";
         try {
           await window.Capacitor.Plugins.BluetoothLe.initialize();
-          // FEATURE: Attempt an automatic reconnection to the last hardware address found in long-term flash memory
+          // CORE OPTIMIZATION: Trigger background MAC recovery routing directly on bootup
           attemptAutoReconnect();
         } catch(e){}
       } else {
@@ -371,7 +371,7 @@
       startAutomaticSync();
     });
 
-    // FEATURE: Persistent pairing routine reads hardware reference address directly on app initialization
+    // AUTO RECONNECT DEPLOYMENT: Restores the connection sequence automatically using historical MAC values
     async function attemptAutoReconnect() {
       if (!isCapacitorActive) return;
       const lastMacAddress = localStorage.getItem('mochi_paired_mac_address');
@@ -402,7 +402,7 @@
         finalizeConnectionUI(`M-Buddy_${rawSuffix || 'Auto'}`);
         window.showToast("RECONNECTED", "Link restored successfully!");
       } catch (err) {
-        console.warn("Auto-reconnect link target missing or sleeping:", err);
+        console.warn("Auto-reconnect target sleeping or unavailable:", err);
         onDisconnected();
       } finally {
         isReconnecting = false;
@@ -437,7 +437,7 @@
         try {
           await Ble.requestPermissions();
         } catch (permissionError) {
-          console.warn("Permission assertion bypassed for online execution environment:", permissionError);
+          console.warn("Permission checking layer safely bypassed.", permissionError);
         }
         
         connectionState.textContent = "SCANNING...";
@@ -462,7 +462,6 @@
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
         
-        // FIX: Enforce writing authentication data straight to the peripheral hardware register configuration
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
@@ -471,7 +470,7 @@
         });
 
         capacitorDeviceId = device.deviceId;
-        // PERSISTENCE: Record the device address inside local browser cache to enable background wakeups later
+        // PERSISTENCE ENGINE: Commit paired reference markers permanently inside app space
         localStorage.setItem('mochi_paired_mac_address', device.deviceId);
         finalizeConnectionUI(cleanName);
       } catch (err) {
@@ -529,7 +528,7 @@
       connectBtn.textContent = "Disconnect Robot";
       unpairBtn.classList.remove('hidden');
       
-      // FIX: Wait exactly 1 second for the hardware link layer to settle before executing data sync transfers
+      // SYNC BUG FIX: Let GATT server settle for exactly 1 second before data sync packets fire
       setTimeout(() => {
         window.sendSyncPacket();
       }, 1000);
@@ -604,7 +603,7 @@
               weatherDetails = "Clear --C";
             }
 
-            // FIX: Data sync packet execution will now only fire if location services return true telemetry updates
+            // CORE LOGIC UPDATE: Triggers data synchronization transmission only when values resolve properly
             window.sendSyncPacket();
           },
           (error) => {
@@ -622,9 +621,9 @@
     window.sendSyncPacket = function() {
       if (!capacitorDeviceId && !rxCharacteristic) return;
       
-      // FIX: Block connection stream packet assembly if geolocation data fetching isn't complete yet
+      // HARDCODED FIX: Completely drops transmission until real telemetry attributes execute safely
       if (!cityName || !weatherDetails) {
-        console.log("Telemetry transmission paused: Awaiting valid GPS data coordinates.");
+        console.log("Transmission paused: Awaiting valid coordinate stream.");
         return;
       }
 
