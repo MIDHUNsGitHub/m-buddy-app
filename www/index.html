@@ -348,13 +348,39 @@
     // ========================================================
     // HYBRID SAFE BASE64 CONVERTER (FIXES "VALUE REQUIRED")
     // ========================================================
-   function toBase64(str) {
-  let arr = [];
-  for (let i = 0; i < str.length; i++) {
-    arr.push(str.charCodeAt(i) & 0xff);
-  }
-  return arr; // Returns [65, 85, 84, 72...]
-}
+    // ==========================================
+    // STABLE INDEPENDENT BASE64 STRING ENCODER
+    // ==========================================
+    function toBase64(str) {
+      try {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        let bytes = [];
+        for (let i = 0; i < str.length; i++) {
+          bytes.push(str.charCodeAt(i) & 0xff);
+        }
+        
+        let result = '';
+        let i = 0;
+        while (i < bytes.length) {
+          let b1 = bytes[i++];
+          let b2 = i < bytes.length ? bytes[i++] : NaN;
+          let b3 = i < bytes.length ? bytes[i++] : NaN;
+          
+          let enc1 = b1 >> 2;
+          let enc2 = ((b1 & 3) << 4) | (isNaN(b2) ? 0 : b2 >> 4);
+          let enc3 = isNaN(b2) ? 64 : ((b2 & 15) << 2) | (isNaN(b3) ? 0 : b3 >> 6);
+          let enc4 = isNaN(b3) ? 64 : b3 & 63;
+          
+          result += chars.charAt(enc1) + chars.charAt(enc2) +
+                    (enc3 === 64 ? '=' : chars.charAt(enc3)) +
+                    (enc4 === 64 ? '=' : chars.charAt(enc4));
+        }
+        return result; // Outputs a true standard base64 string "QVVUSCoxMjM0" safely
+      } catch (err) {
+        console.error("Base64 manual string encoding failed:", err);
+        return "";
+      }
+    }
 
     window.addEventListener('load', async () => {
       const savedID = localStorage.getItem('mochi_device_id');
@@ -395,8 +421,8 @@
         
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
-        const base64Handshake = toBase64(handshakeToken);
-        
+        const base64Handshake = toBase64(handshakeToken); // This is now our safe base64 string
+
         if (!base64Handshake) {
           throw new Error("Handshake string transformation failed.");
         }
@@ -473,7 +499,7 @@
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: window.Capacitor.DataUtils.toBase64(new Uint8Array(base64Handshake)) // Uses native utility helper!
+          value: base64Handshake // <-- Just pass the clean string here directly!
         });
 
         capacitorDeviceId = device.deviceId;
@@ -541,20 +567,21 @@
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
-          const byteValue = toBase64(command);
+          const byteValue = toBase64(command); // Generates our safe base64 string
           if (!byteValue) return;
 
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: byteValue
+            value: byteValue // <-- Clean string mapping bypasses DataUtils bugs
           });
         } catch (err) {
           console.error("Capacitor Write Exception:", err);
           window.showToast("TX ERROR", "Failed to send packet data.");
         }
       } else {
+         
         if (!rxCharacteristic) return;
         try {
           const encoder = new TextEncoder();
