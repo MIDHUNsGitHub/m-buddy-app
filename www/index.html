@@ -352,20 +352,18 @@
     // ==========================================
     // STABLE STANDARD BASE64 ENCODER
     // ==========================================
+    // ========================================================
+    // ALTERNATIVE NATIVE HEX FORMAT (Use ONLY if Base64 string crashes)
+    // ========================================================
     function toBase64(str) {
       try {
-        // Step 1: Safe string encoding bypasses old unescape/btoa constraints
-        // Using a safe, modern array character builder ensures the native Android
-        // framework accepts the string type mapping without thread exceptions.
-        const codeUnits = new Uint16Array(str.length);
-        for (let i = 0; i < codeUnits.length; i++) {
-          codeUnits[i] = str.charCodeAt(i);
+        let hex = '';
+        for (let i = 0; i < str.length; i++) {
+          let charHex = str.charCodeAt(i).toString(16);
+          hex += charHex.length === 1 ? '0' + charHex : charHex;
         }
-        
-        const binaryStr = String.fromCharCode.apply(null, new Uint8Array(codeUnits.buffer));
-        return btoa(binaryStr);
+        return hex; // Yields a text format string: "415554483a31323334"
       } catch (err) {
-        console.error("Base64 processing error:", err);
         return "";
       }
     }
