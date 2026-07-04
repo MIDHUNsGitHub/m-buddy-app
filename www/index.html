@@ -171,7 +171,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const fallbackConfig = {
       apiKey: "AIzaSyDummyKeyForDevelopmentPurposesOnly",
@@ -316,9 +316,9 @@
     const SERVICE_UUID        = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
     const CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 
-    let bluetoothDevice = null;       // Used for Web Bluetooth
-    let rxCharacteristic = null;      // Used for Web Bluetooth
-    let capacitorDeviceId = null;     // Used for Native Android BLE
+    let bluetoothDevice = null;       
+    let rxCharacteristic = null;      
+    let capacitorDeviceId = null;     
     
     let gpsInterval = null;
     let isCapacitorActive = false;
@@ -396,9 +396,9 @@
         
         connectionState.textContent = "SCANNING...";
         
-        // Android-safe plugin option parser parameters
+        // Fix: Use prefix target filter string to make Android safely parse peripheral broadcast headers
         let requestOptions = {
-          services: [SERVICE_UUID],
+          namePrefix: "M-Buddy",
           scanMode: 2
         };
 
@@ -408,16 +408,14 @@
           return;
         }
 
-        let cleanName = (device.name && !device.name.includes(':')) ? device.name : `M-Buddy_${rawSuffix || 'Device'}`;
+        let cleanName = device.name ? device.name : `M-Buddy_${rawSuffix || 'Device'}`;
         
         connectionState.textContent = "BONDING...";
         await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
         
-        // Required Android service discovery stabilization pause
         await new Promise(r => setTimeout(r, 1500));
         
         connectionState.textContent = "AUTHENTICATING...";
-        // Exact 1-to-1 match with M_BUDDY013.ino's "AUTH:PIN" expectation
         const handshakeToken = `AUTH:${pinCode}`;
         
         await Ble.write({
@@ -430,7 +428,7 @@
         capacitorDeviceId = device.deviceId;
         finalizeConnectionUI(cleanName);
       } catch (err) {
-        window.showToast("CONNECTION ERROR", err.message || "Native handshake failed.");
+        window.showToast("CONNECTION ERROR", err.message || "Handshake failed.");
         onDisconnected();
       }
     }
@@ -507,7 +505,6 @@
       }
     }
 
-    // Continuous text pipeline input stream syncing listener
     customOledTextInput.addEventListener('input', () => {
       if (capacitorDeviceId || rxCharacteristic) {
         window.sendSyncPacket();
