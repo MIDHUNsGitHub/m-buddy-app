@@ -324,8 +324,8 @@
     let isCapacitorActive = false;
     let isReconnecting = false;
 
-    let cityName = "City...";          // Hardcoded fallback so packet doesn't block
-    let weatherDetails = "Weather..."; // Hardcoded fallback so packet doesn't block
+    let cityName = "Kochi";          // Hardcoded fallback so packet doesn't block
+    let weatherDetails = "Sunny 31C"; // Hardcoded fallback so packet doesn't block
 
     const connectBtn = document.getElementById('connectBtn');
     const unpairBtn = document.getElementById('unpairBtn');
@@ -342,17 +342,23 @@
     // ==========================================
     // STABLE NATIVE TYPED BYTE ARRAY CONVERTER
     // ==========================================
+    // ==========================================
+    // DEBOMBED NATIVE TYPED BYTE ARRAY CONVERTER
+    // ==========================================
     function toBase64(str) {
       try {
-        // Step 1: Initialize a standard browser Text Encoder
-        const encoder = new TextEncoder();
+        // Step 1: Initialize a standard, safe data block array
+        const bytes = new Uint8Array(str.length);
         
-        // Step 2: Convert the string ("AUTH:1234") into a direct Uint8Array block
-        // This generates [65, 85, 84, 72, 58, 49, 50, 51, 52]
-        // This stops all Android native layer crashes and keeps data intact.
-        return encoder.encode(str);
+        // Step 2: Extract character values manually without calling TextEncoder
+        for (let i = 0; i < str.length; i++) {
+          bytes[i] = str.charCodeAt(i) & 0xff;
+        }
+        
+        // Step 3: Return the raw typed array memory container directly
+        return bytes;
       } catch (err) {
-        console.error("Binary byte conversion error:", err);
+        console.error("Binary conversion error:", err);
         return null;
       }
     }
