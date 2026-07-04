@@ -526,34 +526,38 @@
     }
 
     async function sendCommand(command) {
-  if (isCapacitorActive) {
-    if (!capacitorDeviceId) return;
-    try {
-      // 1. Force a clear trailing newline (\n) so your ESP32 accumulator triggers instantly
-      const formattedCommand = command.trim() + "\n";
-      
-      // 2. Pass the formatted data through your original, working hex conversion function
-      const hexPayload = stringToHex(formattedCommand);
+      if (isCapacitorActive) {
+        if (!capacitorDeviceId) return;
+        try {
+          // 1. Clean the payload string formatting
+          const cleanCommand = command.trim();
+          
+          // 2. Encode text directly into standard Base64 format
+          // This tells Capacitor to send pure text bytes down to the ESP32 registers
+          const base64Value = btoa(
+            encodeURIComponent(cleanCommand).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+              return String.fromCharCode(parseInt(p1, 16));
+            })
+          );
 
-      // 3. CAPACITOR DIRECT PLATFORM CALL
-      await window.Capacitor.Plugins.BluetoothLe.write({
-        deviceId: capacitorDeviceId,
-        service: SERVICE_UUID,
-        characteristic: CHARACTERISTIC_UUID,
-        value: hexPayload // Sends the validated Hex string your app natively expects
-      });
-    } catch (err) {
-      console.error("[Capacitor BLE Sync Exception]:", err);
+          await window.Capacitor.Plugins.BluetoothLe.write({
+            deviceId: capacitorDeviceId,
+            service: SERVICE_UUID,
+            characteristic: CHARACTERISTIC_UUID,
+            value: base64Value
+          });
+        } catch (err) {
+          console.error("Capacitor BLE Write Error:", err);
+        }
+      } else {
+        if (!rxCharacteristic) return;
+        try {
+          const encoder = new TextEncoder();
+          await rxCharacteristic.writeValue(encoder.encode(command));
+        } catch (err) {}
+      }
     }
-  } else {
-    // Leaves your original working desktop Web-Bluetooth engine completely intact
-    if (!rxCharacteristic) return;
-    try {
-      const encoder = new TextEncoder();
-      await rxCharacteristic.writeValue(encoder.encode(command));
-    } catch (err) {}
-  }
-}
+
     customOledTextInput.addEventListener('input', () => {
       if (capacitorDeviceId || rxCharacteristic) { window.sendSyncPacket(); }
     });
