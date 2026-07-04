@@ -529,26 +529,21 @@
   if (isCapacitorActive) {
     if (!capacitorDeviceId) return;
     try {
-      // 1. Force a clear trailing newline (\n) so the ESP32 buffer commits instantly
+      // 1. Force a clear trailing newline (\n) so your ESP32 accumulator triggers instantly
       const formattedCommand = command.trim() + "\n";
       
-      // 2. BASE64 ENCODER: Convert string safely to Base64 (The standard parameter format for Capacitor BLE)
-      const base64Payload = btoa(
-        encodeURIComponent(formattedCommand).replace(/%([0-9A-F]{2})/g, (match, p1) => {
-          return String.fromCharCode(parseInt(p1, 16));
-        })
-      );
+      // 2. Pass the formatted data through your original, working hex conversion function
+      const hexPayload = stringToHex(formattedCommand);
 
-      // 3. CAPACITOR STABLE TRANSACTION PUSH
+      // 3. CAPACITOR DIRECT PLATFORM CALL
       await window.Capacitor.Plugins.BluetoothLe.write({
         deviceId: capacitorDeviceId,
         service: SERVICE_UUID,
         characteristic: CHARACTERISTIC_UUID,
-        value: base64Payload // Passes the verified base64 string
+        value: hexPayload // Sends the validated Hex string your app natively expects
       });
-      
     } catch (err) {
-      console.error("[Capacitor BLE TX Error]:", err);
+      console.error("[Capacitor BLE Sync Exception]:", err);
     }
   } else {
     // Leaves your original working desktop Web-Bluetooth engine completely intact
@@ -559,7 +554,6 @@
     } catch (err) {}
   }
 }
-
     customOledTextInput.addEventListener('input', () => {
       if (capacitorDeviceId || rxCharacteristic) { window.sendSyncPacket(); }
     });
