@@ -343,9 +343,27 @@
     // Maps standard raw string elements securely into padded Base64 text to prevent 
     // native Android Java stack decoding violations (IllegalArgumentException).
    
-    // Change this function to simply return the string unmodified
+    // ==========================================
+    // STABLE STANDARD BASE64 ENCODER
+    // ==========================================
     function toBase64(str) {
-      return str; 
+      try {
+        // Step 1: Force standard UTF-8 encoding array
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(str);
+        
+        // Step 2: Extract binary byte array map safely
+        let binaryStr = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binaryStr += String.fromCharCode(bytes[i]);
+        }
+        
+        // Step 3: Yield perfectly clean padded standard Base64 string wrapper
+        return btoa(binaryStr);
+      } catch (err) {
+        console.error("Base64 processing error:", err);
+        return "";
+      }
     }
 
     window.addEventListener('load', async () => {
@@ -381,17 +399,23 @@
 
       try {
         connectionState.textContent = "RECONNECTING...";
+        
         await Ble.connect({ deviceId: lastMacAddress, timeout: 6000 });
         await new Promise(r => setTimeout(r, 1200));
         
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
+        const base64Handshake = toBase64(handshakeToken);
+        
+        if (!base64Handshake) {
+          throw new Error("Handshake string transformation failed.");
+        }
         
         await Ble.write({
           deviceId: lastMacAddress,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: toBase64(handshakeToken)
+          value: base64Handshake
         });
 
         capacitorDeviceId = lastMacAddress;
@@ -447,17 +471,20 @@
         await new Promise(r => setTimeout(r, 1500));
         
         connectionState.textContent = "AUTHENTICATING...";
-
-        // Match the exact format from your successful prototype log: "AUTH:1234"
-        const handshakeToken = `AUTH:${pinCode}`;        
-
+        const handshakeToken = `AUTH:${pinCode}`;
+        const base64Handshake = toBase64(handshakeToken);
+        
+        if (!base64Handshake) {
+          throw new Error("Handshake string transformation failed.");
+        }
+        
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: handshakeToken // Sends raw string directly
+          value: base64Handshake
         });
-        
+
         capacitorDeviceId = device.deviceId;
         localStorage.setItem('mochi_paired_mac_address', device.deviceId);
         localStorage.setItem('mochi_paired_name', targetDeviceName);
