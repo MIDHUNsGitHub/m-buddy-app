@@ -396,9 +396,9 @@
         
         connectionState.textContent = "SCANNING...";
         
-        // Fix: Use prefix target filter string to make Android safely parse peripheral broadcast headers
+        // Match specific Target Service UUID directly to unlock local background scan limits safely
         let requestOptions = {
-          namePrefix: "M-Buddy",
+          services: [SERVICE_UUID],
           scanMode: 2
         };
 
