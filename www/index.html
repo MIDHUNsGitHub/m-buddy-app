@@ -341,11 +341,18 @@
 
     // FIX: Converted safely into a standard numeric array mapping to prevent native Android background interface failures.
     function toBase64(str) {
-      const numberBytes = [];
-      for (let i = 0; i < str.length; i++) {
-        numberBytes.push(str.charCodeAt(i));
+      // 1. First encode the string as UTF-8 bytes
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(str);
+      
+      // 2. Convert binary bytes into a safe character binary string
+      let binaryStr = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binaryStr += String.fromCharCode(bytes[i]);
       }
-      return numberBytes;
+      
+      // 3. Output true safe Base64 text that Capacitor native layer accepts
+      return btoa(binaryStr);
     }
 
     window.addEventListener('load', async () => {
@@ -527,20 +534,27 @@
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
-          // Send pure ASCII format down to the peripheral registers
+          const base64Value = toBase64(command);
+          
+          // The native wrapper requires the value parameter to be a clean string
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: toBase64(command)
+            value: base64Value
           });
-        } catch (err) {}
+        } catch (err) {
+          console.error("Capacitor Write Exception:", err);
+          window.showToast("TX ERROR", "Failed to send packet data.");
+        }
       } else {
         if (!rxCharacteristic) return;
         try {
           const encoder = new TextEncoder();
           await rxCharacteristic.writeValue(encoder.encode(command));
-        } catch (err) {}
+        } catch (err) {
+          console.error("Web Bluetooth Write Exception:", err);
+        }
       }
     }
 
