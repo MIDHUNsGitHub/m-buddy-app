@@ -159,7 +159,7 @@
       </div>
       <div class="flex justify-between items-center bg-gray-50 border-2 border-black p-3 rounded-lg">
         <span class="text-xs font-bold text-gray-600 uppercase">Target Node:</span>
-        <span id="appCity" class="font-black text-sm text-black retro-heading">None</span>
+        <span id="appCity" class="font-black text-sm text-black retro-heading">Scanning...</span>
       </div>
     </div>
 
@@ -317,8 +317,8 @@
     let gpsInterval = null;
     let isCapacitorActive = false;
 
-    let cityName = "Kochi";
-    let weatherDetails = "Sunny 29C";
+    let cityName = "Scanning...";
+    let weatherDetails = "Syncing...";
 
     const connectBtn = document.getElementById('connectBtn');
     const unpairBtn = document.getElementById('unpairBtn');
@@ -332,14 +332,15 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // Safe String to Hex Conversion utility format
-    function stringToHex(str) {
-      let hex = '';
+    // EXPLICIT STRUCTURAL FIX: Packages clean strings directly into DataView structures 
+    // to bypass the Capacitor platform's serialization parsing flaws.
+    function stringToDataView(str) {
+      const buffer = new ArrayBuffer(str.length);
+      const view = new DataView(buffer);
       for (let i = 0; i < str.length; i++) {
-        let code = str.charCodeAt(i).toString(16);
-        hex += (code.length === 1 ? '0' : '') + code;
+        view.setUint8(i, str.charCodeAt(i));
       }
-      return hex.toLowerCase();
+      return view;
     }
 
     window.addEventListener('load', async () => {
@@ -391,7 +392,7 @@
           deviceId: macAddress,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: stringToHex(handshakeToken)
+          value: stringToDataView(handshakeToken)
         });
 
         bluetoothDevice = { deviceId: macAddress, name: savedName };
@@ -441,7 +442,7 @@
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: stringToHex(handshakeToken) 
+          value: stringToDataView(handshakeToken) 
         });
 
         bluetoothDevice = { deviceId: device.deviceId, name: finalCalculatedName };
@@ -498,7 +499,7 @@
             deviceId: bluetoothDevice.deviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: stringToHex(command) 
+            value: stringToDataView(command) 
           });
         } catch (err) {}
       } else {
@@ -518,43 +519,57 @@
       onDisconnected();
     });
 
+    // RESTRUCTURED DYNAMIC LOOP ENGINE: Actively fetches real location coordinates 
+    // dynamically inside the 4-second transmission heartbeat interval.
     function startAutomaticSync() {
       if (gpsInterval) clearInterval(gpsInterval);
       gpsBtn.textContent = "Streaming...";
 
-      const fetchTelemetryData = async (lat, lon) => {
-        try {
-          const geoRes = await fetch(`https://geocode.maps.co/reverse?lat=${lat}&lon=${lon}&api_key=65cb4b711e58e`);
-          const geoData = await geoRes.json();
-          cityName = geoData.address.city || geoData.address.town || geoData.address.suburb || "Kochi";
-        } catch (e) {
-          cityName = "Kochi";
-        }
-        
-        if (cityName.length > 10) cityName = cityName.substring(0, 10);
-        document.getElementById('appCity').textContent = cityName;
+      const executeActiveTelemetryHarvest = () => {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            
+            // Fetch reverse geocoding for active position
+            try {
+              const geoRes = await fetch(`https://geocode.maps.co/reverse?lat=${lat}&lon=${lon}&api_key=65cb4b711e58e`);
+              const geoData = await geoRes.json();
+              cityName = geoData.address.city || geoData.address.town || geoData.address.suburb || geoData.address.state || "Unknown";
+            } catch (e) {
+              if (cityName === "Scanning...") cityName = "Kochi";
+            }
+            
+            if (cityName.length > 10) cityName = cityName.substring(0, 10);
+            document.getElementById('appCity').textContent = cityName;
 
-        try {
-          const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-          const weatherData = await weatherRes.json();
-          weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}C`;
-          document.getElementById('appWeather').textContent = weatherDetails;
-        } catch (e) {}
-        
-        window.sendSyncPacket();
+            // Fetch live weather data for active coordinates
+            try {
+              const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+              const weatherData = await weatherRes.json();
+              weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}C`;
+              document.getElementById('appWeather').textContent = weatherDetails;
+            } catch (e) {
+              if (weatherDetails === "Syncing...") weatherDetails = "Sunny 29C";
+            }
+            
+            window.sendSyncPacket();
+          },
+          async (error) => {
+            // Default fallback configuration loop values
+            if (cityName === "Scanning...") cityName = "Kochi";
+            if (weatherDetails === "Syncing...") weatherDetails = "Sunny 29C";
+            document.getElementById('appCity').textContent = cityName;
+            document.getElementById('appWeather').textContent = weatherDetails;
+            window.sendSyncPacket();
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
       };
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          fetchTelemetryData(position.coords.latitude, position.coords.longitude);
-        },
-        (error) => {
-          fetchTelemetryData(9.9312, 76.2673); 
-        },
-        { enableHighAccuracy: false, timeout: 8000 }
-      );
-
-      gpsInterval = setInterval(window.sendSyncPacket, 4000); 
+      // Run immediately upon establishing connection, then tick every 4 seconds
+      executeActiveTelemetryHarvest();
+      gpsInterval = setInterval(executeActiveTelemetryHarvest, 4000); 
     }
 
     window.sendSyncPacket = function() {
@@ -581,6 +596,10 @@
       gpsInterval = null;
       bluetoothDevice = null;
       rxCharacteristic = null;
+      document.getElementById('appCity').textContent = "Scanning...";
+      document.getElementById('appWeather').textContent = "--";
+      cityName = "Scanning...";
+      weatherDetails = "Syncing...";
     }
 
     setInterval(() => {
