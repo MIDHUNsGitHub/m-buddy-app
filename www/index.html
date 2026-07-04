@@ -342,19 +342,10 @@
     // FIXED: Strict, standard-compliant byte chunk array pipeline encoder.
     // Maps standard raw string elements securely into padded Base64 text to prevent 
     // native Android Java stack decoding violations (IllegalArgumentException).
+   
+    // Change this function to simply return the string unmodified
     function toBase64(str) {
-      try {
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(str);
-        let binaryStr = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binaryStr += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binaryStr);
-      } catch (err) {
-        console.error("Base64 processing error:", err);
-        return "";
-      }
+      return str; 
     }
 
     window.addEventListener('load', async () => {
@@ -456,13 +447,15 @@
         await new Promise(r => setTimeout(r, 1500));
         
         connectionState.textContent = "AUTHENTICATING...";
-        const handshakeToken = `AUTH:${pinCode}`;
-        
+
+        // Match the exact format from your successful prototype log: "AUTH:1234"
+        const handshakeToken = `AUTH:${pinCode}`;        
+
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: toBase64(handshakeToken)
+          value: handshakeToken // Sends raw string directly
         });
         
         capacitorDeviceId = device.deviceId;
@@ -622,7 +615,8 @@
       const mins = String(now.getMinutes()).padStart(2, '0');
       
       let customText = customOledTextInput.value.trim();
-      if (!customText) customText = "None";
+      // If empty, leave it empty so it ends with a clean pipe just like your log
+      if (!customText) customText = ""; 
       
       const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
