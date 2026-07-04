@@ -171,7 +171,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
     const fallbackConfig = {
       apiKey: "AIzaSyDummyKeyForDevelopmentPurposesOnly",
@@ -185,7 +185,8 @@
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    let db = null;
+    try { db = getFirestore(app); } catch(e){}
     const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
 
     let currentUser = null;
@@ -234,9 +235,11 @@
       localStorage.setItem('mochi_text_cache', JSON.stringify(cached));
       window.renderLocalSavedTexts();
 
-      if (currentUser && !msgId.startsWith('temp_')) {
-        const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts', msgId);
-        try { await deleteDoc(docRef); } catch (err) {}
+      if (currentUser && !msgId.startsWith('temp_') && db) {
+        try {
+          const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts', msgId);
+          await deleteDoc(docRef);
+        } catch (err) {}
       }
       window.showToast("REMOVED", "Message index cleared.");
     }
@@ -252,7 +255,7 @@
         }
         onAuthStateChanged(auth, (user) => {
           currentUser = user;
-          if (user) setupSavedTextsListener(user.uid);
+          if (user && db) setupSavedTextsListener(user.uid);
         });
       } catch (e) {}
     };
@@ -260,27 +263,29 @@
     initAuthAndObserver();
 
     function setupSavedTextsListener(userId) {
-      if (!userId) return;
+      if (!userId || !db) return;
       if (savedTextsUnsubscribe) savedTextsUnsubscribe();
 
-      const collectionRef = collection(db, 'artifacts', appId, 'users', userId, 'saved_texts');
-      const sortedQuery = query(collectionRef, orderBy('createdAt', 'desc'));
-      
-      savedTextsUnsubscribe = onSnapshot(sortedQuery, (snapshot) => {
-        const localItems = [];
-        if (snapshot.empty) {
+      try {
+        const collectionRef = collection(db, 'artifacts', appId, 'users', userId, 'saved_texts');
+        const sortedQuery = query(collectionRef, orderBy('createdAt', 'desc'));
+        
+        savedTextsUnsubscribe = onSnapshot(sortedQuery, (snapshot) => {
+          const localItems = [];
+          if (snapshot.empty) {
+            window.renderLocalSavedTexts();
+            return;
+          }
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            localItems.push({ id: docSnap.id, text: data.text, createdAt: data.createdAt || Date.now() });
+          });
+          localStorage.setItem('mochi_text_cache', JSON.stringify(localItems));
           window.renderLocalSavedTexts();
-          return;
-        }
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          localItems.push({ id: docSnap.id, text: data.text, createdAt: data.createdAt || Date.now() });
+        }, () => {
+          window.renderLocalSavedTexts();
         });
-        localStorage.setItem('mochi_text_cache', JSON.stringify(localItems));
-        window.renderLocalSavedTexts();
-      }, () => {
-        window.renderLocalSavedTexts();
-      });
+      } catch(e) { window.renderLocalSavedTexts(); }
     }
 
     document.getElementById('saveTextBtn').addEventListener('click', async () => {
@@ -298,9 +303,9 @@
 
       if (window.sendSyncPacket) window.sendSyncPacket();
 
-      if (!currentUser) return;
-      const collectionRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
+      if (!currentUser || !db) return;
       try {
+        const collectionRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
         await addDoc(collectionRef, { text: textToSave, createdAt: entryTimestamp });
         window.showToast("REGISTERED", "Saved to Cloud!");
       } catch (err) {}
@@ -311,9 +316,9 @@
     const SERVICE_UUID        = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
     const CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 
-    let bluetoothDevice = null;       // Holds Web Bluetooth Device reference
-    let rxCharacteristic = null;      // Holds Web Bluetooth Characteristic reference
-    let capacitorDeviceId = null;     // Holds Native MAC/UUID address descriptor
+    let bluetoothDevice = null;       // Used for Web Bluetooth
+    let rxCharacteristic = null;      // Used for Web Bluetooth
+    let capacitorDeviceId = null;     // Used for Native Android BLE
     
     let gpsInterval = null;
     let isCapacitorActive = false;
@@ -333,7 +338,6 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // Safe fallback hex converter for native execution layers
     function stringToHex(str) {
       let hex = '';
       for (let i = 0; i < str.length; i++) {
@@ -352,21 +356,14 @@
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
         isCapacitorActive = true;
         runtimeEngineText.textContent = "Capacitor Native Engine Active";
-        
         try {
           await window.Capacitor.Plugins.BluetoothLe.initialize();
         } catch(e){}
-
-        const cachedMac = localStorage.getItem('mochi_paired_address');
-        if (cachedMac) {
-          unpairBtn.classList.remove('hidden');
-        }
       } else {
         isCapacitorActive = false;
         runtimeEngineText.textContent = "Standard Web Bluetooth Active";
       }
       
-      // Initialize telemetry location lookup independently
       startAutomaticSync();
     });
 
@@ -382,7 +379,7 @@
       }
     });
 
-    // --- CAPACITOR NATIVE ANDROID/IOS RUNTIME FLOWS ---
+    // --- CAPACITOR NATIVE ANDROID RUNTIME FLOW ---
     async function handleCapacitorConnect() {
       const Ble = window.Capacitor.Plugins.BluetoothLe;
       const rawSuffix = inputMochiID.value.trim().toUpperCase();
@@ -395,33 +392,32 @@
 
       try {
         connectionState.textContent = "PERMISSIONS...";
-        // Explicitly request permissions on button tap to handle runtime restrictions safely
         await Ble.requestPermissions();
         
         connectionState.textContent = "SCANNING...";
-        let scanFilters = [];
-        if (rawSuffix) {
-          scanFilters.push({ name: `M-Buddy_${rawSuffix}` });
-        } else {
-          scanFilters.push({ namePrefix: 'M-Buddy' });
-        }
+        
+        // Android-safe plugin option parser parameters
+        let requestOptions = {
+          services: [SERVICE_UUID],
+          scanMode: 2
+        };
 
-        const device = await Ble.requestDevice({ filters: scanFilters, scanMode: 2 });
+        const device = await Ble.requestDevice(requestOptions);
         if (!device || !device.deviceId) {
           onDisconnected();
           return;
         }
 
-        // Clean name parsing logic: hides MAC address elements
         let cleanName = (device.name && !device.name.includes(':')) ? device.name : `M-Buddy_${rawSuffix || 'Device'}`;
         
         connectionState.textContent = "BONDING...";
         await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
         
-        // Critical stabilization pause for native stack service registration
+        // Required Android service discovery stabilization pause
         await new Promise(r => setTimeout(r, 1500));
         
         connectionState.textContent = "AUTHENTICATING...";
+        // Exact 1-to-1 match with M_BUDDY013.ino's "AUTH:PIN" expectation
         const handshakeToken = `AUTH:${pinCode}`;
         
         await Ble.write({
@@ -432,7 +428,6 @@
         });
 
         capacitorDeviceId = device.deviceId;
-        localStorage.setItem('mochi_paired_address', device.deviceId);
         finalizeConnectionUI(cleanName);
       } catch (err) {
         window.showToast("CONNECTION ERROR", err.message || "Native handshake failed.");
@@ -440,7 +435,7 @@
       }
     }
 
-    // --- CHROME/WEB RUNTIME ENGINE FLOWS ---
+    // --- CHROME WEB BROWSER RUNTIME FLOW ---
     async function handleWebConnect() {
       const rawSuffix = inputMochiID.value.trim().toUpperCase();
       const pinCode = inputMochiPIN.value.trim() || "1234";
@@ -489,7 +484,6 @@
       connectBtn.textContent = "Disconnect Robot";
       unpairBtn.classList.remove('hidden');
       
-      // Force an immediate sync packet push upon successful authentication
       window.sendSyncPacket();
     }
 
@@ -513,7 +507,7 @@
       }
     }
 
-    // Instantly syncs custom text dynamically as you type
+    // Continuous text pipeline input stream syncing listener
     customOledTextInput.addEventListener('input', () => {
       if (capacitorDeviceId || rxCharacteristic) {
         window.sendSyncPacket();
@@ -521,7 +515,6 @@
     });
 
     unpairBtn.addEventListener('click', () => {
-      localStorage.removeItem('mochi_paired_address');
       localStorage.removeItem('mochi_device_id');
       localStorage.removeItem('mochi_device_pin');
       onDisconnected();
