@@ -332,8 +332,7 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // CRITICAL CRASH REPAIR: Formats data to absolute plain hex string text syntax.
-    // This stops native Android plugin crashes while keeping standard ESP32 parsing intact.
+    // Safe String to Hex Conversion utility format
     function stringToHex(str) {
       let hex = '';
       for (let i = 0; i < str.length; i++) {
@@ -430,7 +429,7 @@
         await Ble.connect({ deviceId: device.deviceId, timeout: 12000 });
         
         await new Promise(r => setTimeout(r, 1500));
-        connectionState.textContent = "DISCOVERING SERVICES...";// Forces internal mapping indexing
+        connectionState.textContent = "DISCOVERING SERVICES...";
         await Ble.getServices({ deviceId: device.deviceId });
         
         await new Promise(r => setTimeout(r, 600));
@@ -442,7 +441,7 @@
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: stringToHex(handshakeToken) // Native hex formatting safely processes without crashes
+          value: stringToHex(handshakeToken) 
         });
 
         bluetoothDevice = { deviceId: device.deviceId, name: finalCalculatedName };
