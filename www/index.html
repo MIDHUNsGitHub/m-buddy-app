@@ -341,17 +341,16 @@
 
   
     // ==========================================
-    // STABLE NATIVE BYTE BUFFER MAPPER
+    // ==========================================
+    // STABLE RAW BYTE ARRAY WRAPPER
     // ==========================================
     function toBase64(str) {
       try {
-        // We push raw character integers into a plain JavaScript Array.
-        // This format bypasses the plugin's string-binding bugs completely!
         let arr = [];
         for (let i = 0; i < str.length; i++) {
           arr.push(str.charCodeAt(i) & 0xff);
         }
-        return arr; // Yields [65, 85, 84, 72...]
+        return arr; // Returns [65, 85, 84, 72...] instead of a crash-prone text string
       } catch (err) {
         console.error("Buffer mapping failed:", err);
         return null;
@@ -398,23 +397,23 @@
         
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
-        const rawBytes = toBase64(handshakeToken);
+        const rawBytes = toBase64(handshakeToken); 
         
         if (!rawBytes) {
           throw new Error("Handshake string transformation failed.");
         }
         
+        // Convert the safe array integers directly into an explicitly escaped Base64 variant
         let binStr = "";
         for (let i = 0; i < rawBytes.length; i++) {
           binStr += String.fromCharCode(rawBytes[i]);
         }
-        const safeBase64String = btoa(binStr);
         
         await Ble.write({
-          deviceId: lastMacAddress,
+          deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: safeBase64String
+          value: btoa(binStr) // Safe Base64 mapping pattern prevents native thread crashes
         });
 
         capacitorDeviceId = lastMacAddress;
@@ -563,20 +562,19 @@
           for (let i = 0; i < rawBytes.length; i++) {
             binStr += String.fromCharCode(rawBytes[i]);
           }
-          const safeBase64String = btoa(binStr);
 
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: safeBase64String
+            value: btoa(binStr) // Stops background dashboard telemetry transmission crashes
           });
         } catch (err) {
           console.error("Capacitor Write Exception:", err);
           window.showToast("TX ERROR", "Failed to send packet data.");
         }
       } else {
-        // Chrome's Web Bluetooth path remains unchanged and perfectly operational
+        // Web Bluetooth path stays exactly as it is (already working in Chrome)
         if (!rxCharacteristic) return;
         try {
           const encoder = new TextEncoder();
