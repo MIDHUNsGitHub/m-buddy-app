@@ -529,27 +529,29 @@
   if (isCapacitorActive) {
     if (!capacitorDeviceId) return;
     try {
-      // 1. Force an explicit trailing newline (\n) so the ESP32 buffer commits instantly
+      // 1. Force a clear trailing newline (\n) so the ESP32 buffer commits instantly
       const formattedCommand = command.trim() + "\n";
       
-      // 2. STABLE NATIVE BYTE MAPPER: Convert string characters directly into raw system bytes
-      const encoder = new TextEncoder();
-      const rawBytesArray = encoder.encode(formattedCommand);
-      
-      // 3. CAPACITOR SECURE SYNC CHANNEL PUSH
-      // Converts our raw byte array into a platform-compliant DataView buffer
+      // 2. BASE64 ENCODER: Convert string safely to Base64 (The standard parameter format for Capacitor BLE)
+      const base64Payload = btoa(
+        encodeURIComponent(formattedCommand).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+          return String.fromCharCode(parseInt(p1, 16));
+        })
+      );
+
+      // 3. CAPACITOR STABLE TRANSACTION PUSH
       await window.Capacitor.Plugins.BluetoothLe.write({
         deviceId: capacitorDeviceId,
         service: SERVICE_UUID,
         characteristic: CHARACTERISTIC_UUID,
-        value: new DataView(rawBytesArray.buffer)
+        value: base64Payload // Passes the verified base64 string
       });
       
     } catch (err) {
       console.error("[Capacitor BLE TX Error]:", err);
     }
   } else {
-    // Leaves your original, working desktop Web-Bluetooth engine completely intact
+    // Leaves your original working desktop Web-Bluetooth engine completely intact
     if (!rxCharacteristic) return;
     try {
       const encoder = new TextEncoder();
