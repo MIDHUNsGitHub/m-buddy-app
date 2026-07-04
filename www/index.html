@@ -345,21 +345,23 @@
     // ==========================================
     // DEBOMBED NATIVE TYPED BYTE ARRAY CONVERTER
     // ==========================================
+    // ========================================================
+    // HYBRID SAFE BASE64 CONVERTER (FIXES "VALUE REQUIRED")
+    // ========================================================
     function toBase64(str) {
       try {
-        // Step 1: Initialize a standard, safe data block array
-        const bytes = new Uint8Array(str.length);
-        
-        // Step 2: Extract character values manually without calling TextEncoder
+        // Step 1: Create a safe byte stream from character codes
+        let binaryStr = '';
         for (let i = 0; i < str.length; i++) {
-          bytes[i] = str.charCodeAt(i) & 0xff;
+          binaryStr += String.fromCharCode(str.charCodeAt(i) & 0xff);
         }
         
-        // Step 3: Return the raw typed array memory container directly
-        return bytes;
+        // Step 2: Return a standard Base64 string
+        // This provides the exact string type Capacitor expects for the "value" property
+        return btoa(binaryStr);
       } catch (err) {
-        console.error("Binary conversion error:", err);
-        return null;
+        console.error("Base64 conversion error:", err);
+        return "";
       }
     }
 
