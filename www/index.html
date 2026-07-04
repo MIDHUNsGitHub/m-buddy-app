@@ -332,16 +332,15 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // Safe Base64 converter prevents background thread indexing crashes in Capacitor
-    function cleanToBase64(str) {
-      const encoder = new TextEncoder();
-      const bytes = encoder.encode(str);
-      let binary = '';
-      const len = bytes.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
+    // CRITICAL CRASH REPAIR: Formats data to absolute plain hex string text syntax.
+    // This stops native Android plugin crashes while keeping standard ESP32 parsing intact.
+    function stringToHex(str) {
+      let hex = '';
+      for (let i = 0; i < str.length; i++) {
+        let code = str.charCodeAt(i).toString(16);
+        hex += (code.length === 1 ? '0' : '') + code;
       }
-      return window.btoa(binary);
+      return hex.toLowerCase();
     }
 
     window.addEventListener('load', async () => {
@@ -385,7 +384,6 @@
         connectionState.textContent = "LINKING...";
         await Ble.connect({ deviceId: macAddress, timeout: 10000 });
         
-        // Safety grace period before requesting descriptor lists
         await new Promise(r => setTimeout(r, 1500));
         await Ble.getServices({ deviceId: macAddress });
         
@@ -394,7 +392,7 @@
           deviceId: macAddress,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: cleanToBase64(handshakeToken)
+          value: stringToHex(handshakeToken)
         });
 
         bluetoothDevice = { deviceId: macAddress, name: savedName };
@@ -431,21 +429,20 @@
         connectionState.textContent = "BONDING...";
         await Ble.connect({ deviceId: device.deviceId, timeout: 12000 });
         
-        // Critical Fix: Pause execution briefly to let Android index the hardware device descriptors
         await new Promise(r => setTimeout(r, 1500));
-        connectionState.textContent = "DISCOVERING SERVICES...";
+        connectionState.textContent = "DISCOVERING SERVICES...";// Forces internal mapping indexing
         await Ble.getServices({ deviceId: device.deviceId });
         
-        // Decouple UI state modifications from hardware writes to dodge thread drops
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => setTimeout(r, 600));
         connectionState.textContent = "AUTHENTICATING...";
         
         const handshakeToken = `AUTH:${pinCode}|Handset`;
+        
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: cleanToBase64(handshakeToken)
+          value: stringToHex(handshakeToken) // Native hex formatting safely processes without crashes
         });
 
         bluetoothDevice = { deviceId: device.deviceId, name: finalCalculatedName };
@@ -502,7 +499,7 @@
             deviceId: bluetoothDevice.deviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: cleanToBase64(command)
+            value: stringToHex(command) 
           });
         } catch (err) {}
       } else {
@@ -558,7 +555,7 @@
         { enableHighAccuracy: false, timeout: 8000 }
       );
 
-      gpsInterval = setInterval(window.sendSyncPacket, 3000);
+      gpsInterval = setInterval(window.sendSyncPacket, 4000); 
     }
 
     window.sendSyncPacket = function() {
