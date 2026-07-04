@@ -339,20 +339,22 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // FIX: Converted safely into a standard numeric array mapping to prevent native Android background interface failures.
+    // FIXED: Strict, standard-compliant byte chunk array pipeline encoder.
+    // Maps standard raw string elements securely into padded Base64 text to prevent 
+    // native Android Java stack decoding violations (IllegalArgumentException).
     function toBase64(str) {
-      // 1. First encode the string as UTF-8 bytes
-      const encoder = new TextEncoder();
-      const bytes = encoder.encode(str);
-      
-      // 2. Convert binary bytes into a safe character binary string
-      let binaryStr = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binaryStr += String.fromCharCode(bytes[i]);
+      try {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(str);
+        let binaryStr = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binaryStr += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binaryStr);
+      } catch (err) {
+        console.error("Base64 processing error:", err);
+        return "";
       }
-      
-      // 3. Output true safe Base64 text that Capacitor native layer accepts
-      return btoa(binaryStr);
     }
 
     window.addEventListener('load', async () => {
@@ -366,7 +368,6 @@
         runtimeEngineText.textContent = "Capacitor Native Engine Active";
         try {
           await window.Capacitor.Plugins.BluetoothLe.initialize();
-          // Attempt true reconnections only
           setTimeout(() => { attemptAutoReconnect(); }, 800);
         } catch(e){}
       } else {
@@ -377,7 +378,6 @@
       startAutomaticSync();
     });
 
-    // FIX: Verify absolute connectivity. UI states change only if connection calls succeed.
     async function attemptAutoReconnect() {
       if (!isCapacitorActive) return;
       const lastMacAddress = localStorage.getItem('mochi_paired_mac_address');
@@ -390,10 +390,7 @@
 
       try {
         connectionState.textContent = "RECONNECTING...";
-        
-        // Native background connection test
         await Ble.connect({ deviceId: lastMacAddress, timeout: 6000 });
-        
         await new Promise(r => setTimeout(r, 1200));
         
         connectionState.textContent = "AUTHENTICATING...";
@@ -411,7 +408,6 @@
         window.showToast("RECONNECTED", "Hardware communication links online.");
       } catch (err) {
         console.error("Auto link target offline:", err);
-        // Wipe deceptive states immediately
         onDisconnected();
       } finally {
         isReconnecting = false;
@@ -457,7 +453,6 @@
         
         connectionState.textContent = "BONDING...";
         await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
-        
         await new Promise(r => setTimeout(r, 1500));
         
         connectionState.textContent = "AUTHENTICATING...";
@@ -469,6 +464,7 @@
           characteristic: CHARACTERISTIC_UUID,
           value: toBase64(handshakeToken)
         });
+        
         capacitorDeviceId = device.deviceId;
         localStorage.setItem('mochi_paired_mac_address', device.deviceId);
         localStorage.setItem('mochi_paired_name', targetDeviceName);
@@ -530,13 +526,14 @@
       setTimeout(() => { window.sendSyncPacket(); }, 1500);
     }
 
+    // FIXED: Cleaned and optimized transmission handler mapping directly to our updated structure
     async function sendCommand(command) {
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
           const base64Value = toBase64(command);
-          
-          // The native wrapper requires the value parameter to be a clean string
+          if (!base64Value) return;
+
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
@@ -627,7 +624,6 @@
       let customText = customOledTextInput.value.trim();
       if (!customText) customText = "None";
       
-      // Strict data packet styling
       const packet = `DASH:${hrs}:${mins}|${cityName}|${weatherDetails}|${customText}`;
       sendCommand(packet);
     }
