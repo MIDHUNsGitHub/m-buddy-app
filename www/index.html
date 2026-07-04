@@ -332,13 +332,16 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    function stringToHex(str) {
-      let hex = '';
-      for (let i = 0; i < str.length; i++) {
-        let code = str.charCodeAt(i).toString(16);
-        hex += (code.length === 1 ? '0' : '') + code;
+    // Safe base64 conversion block for clean string streaming to native code
+    function cleanToBase64(str) {
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(str);
+      let binary = '';
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
       }
-      return hex.toLowerCase();
+      return window.btoa(binary);
     }
 
     window.addEventListener('load', async () => {
@@ -381,14 +384,17 @@
       try {
         connectionState.textContent = "LINKING...";
         await Ble.connect({ deviceId: macAddress, timeout: 10000 });
-        await new Promise(r => setTimeout(r, 1000));
+        
+        // Stabilize post-connection hardware tracking state
+        await new Promise(r => setTimeout(r, 1200));
+        await Ble.getServices({ deviceId: macAddress });
         
         const handshakeToken = `AUTH:${pinCode}|Handset`;
         await Ble.write({
           deviceId: macAddress,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: stringToHex(handshakeToken)
+          value: cleanToBase64(handshakeToken)
         });
 
         bluetoothDevice = { deviceId: macAddress, name: savedName };
@@ -411,9 +417,8 @@
       try {
         connectionState.textContent = "SCANNING...";
         
-        let scanFilters = [];
-        if (rawSuffix) scanFilters.push({ name: `M-Buddy_${rawSuffix}` });
-        else scanFilters.push({ services: [SERVICE_UUID] }); // Isolation mapping lock applied
+        // Isolates discovered devices strictly using your firmware's primary service footprint
+        let scanFilters = [{ services: [SERVICE_UUID] }];
 
         const device = await Ble.requestDevice({ filters: scanFilters, scanMode: 2 });
         if (!device || !device.deviceId) {
@@ -421,19 +426,23 @@
           return;
         }
 
-        const finalCalculatedName = device.name || `M-Buddy_${rawSuffix}` || "M-BUDDY";
+        const finalCalculatedName = device.name || (rawSuffix ? `M-Buddy_${rawSuffix}` : "M-BUDDY");
         connectionState.textContent = "BONDING...";
         await Ble.connect({ deviceId: device.deviceId, timeout: 12000 });
         
-        await new Promise(r => setTimeout(r, 1000));
-        connectionState.textContent = "AUTHENTICATING...";
+        // Dynamic wait block allows BLE descriptors to securely register within Android
+        await new Promise(r => setTimeout(r, 1200));
+        connectionState.textContent = "DISCOVERING SERVICES...";
+        await Ble.getServices({ deviceId: device.deviceId });
         
+        connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}|Handset`;
+        
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: stringToHex(handshakeToken)
+          value: cleanToBase64(handshakeToken)
         });
 
         bluetoothDevice = { deviceId: device.deviceId, name: finalCalculatedName };
@@ -464,7 +473,6 @@
       try {
         connectionState.textContent = "DISCOVERING...";
         
-        // CRITICAL SECURE FIX: Filters scanning layout to isolate M-Buddy targets only
         let searchFilter = { 
           filters: [
             { services: [SERVICE_UUID] }
@@ -498,7 +506,7 @@
             deviceId: bluetoothDevice.deviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: stringToHex(command)
+            value: cleanToBase64(command)
           });
         } catch (err) {}
       } else {
@@ -526,7 +534,6 @@
         try {
           const geoRes = await fetch(`https://geocode.maps.co/reverse?lat=${lat}&lon=${lon}&api_key=65cb4b711e58e`);
           const geoData = await geoRes.json();
-          // Strips down broad cities to look directly at granular neighborhood/suburb zones
           cityName = geoData.address.suburb || geoData.address.neighbourhood || geoData.address.quarter || geoData.address.city || geoData.address.town || "Kochi";
         } catch (e) {
           cityName = "Kochi";
@@ -538,7 +545,6 @@
         try {
           const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
           const weatherData = await weatherRes.json();
-          // Embeds physical degree icon tag exactly as defined
           weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}°C`;
           document.getElementById('appWeather').textContent = weatherDetails;
         } catch (e) {}
