@@ -339,48 +339,25 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
+  
     // ==========================================
-    // STABLE NATIVE TYPED BYTE ARRAY CONVERTER
-    // ==========================================
-    // ==========================================
-    // DEBOMBED NATIVE TYPED BYTE ARRAY CONVERTER
-    // ==========================================
-    // ========================================================
-    // HYBRID SAFE BASE64 CONVERTER (FIXES "VALUE REQUIRED")
-    // ========================================================
-    // ==========================================
-    // STABLE INDEPENDENT BASE64 STRING ENCODER
+    // STABLE NATIVE BYTE BUFFER MAPPER
     // ==========================================
     function toBase64(str) {
       try {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        let bytes = [];
+        // We push raw character integers into a plain JavaScript Array.
+        // This format bypasses the plugin's string-binding bugs completely!
+        let arr = [];
         for (let i = 0; i < str.length; i++) {
-          bytes.push(str.charCodeAt(i) & 0xff);
+          arr.push(str.charCodeAt(i) & 0xff);
         }
-        
-        let result = '';
-        let i = 0;
-        while (i < bytes.length) {
-          let b1 = bytes[i++];
-          let b2 = i < bytes.length ? bytes[i++] : NaN;
-          let b3 = i < bytes.length ? bytes[i++] : NaN;
-          
-          let enc1 = b1 >> 2;
-          let enc2 = ((b1 & 3) << 4) | (isNaN(b2) ? 0 : b2 >> 4);
-          let enc3 = isNaN(b2) ? 64 : ((b2 & 15) << 2) | (isNaN(b3) ? 0 : b3 >> 6);
-          let enc4 = isNaN(b3) ? 64 : b3 & 63;
-          
-          result += chars.charAt(enc1) + chars.charAt(enc2) +
-                    (enc3 === 64 ? '=' : chars.charAt(enc3)) +
-                    (enc4 === 64 ? '=' : chars.charAt(enc4));
-        }
-        return result; // Outputs a true standard base64 string "QVVUSCoxMjM0" safely
+        return arr; // Yields [65, 85, 84, 72...]
       } catch (err) {
-        console.error("Base64 manual string encoding failed:", err);
-        return "";
+        console.error("Buffer mapping failed:", err);
+        return null;
       }
     }
+    
 
     window.addEventListener('load', async () => {
       const savedID = localStorage.getItem('mochi_device_id');
@@ -421,17 +398,23 @@
         
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
-        const base64Handshake = toBase64(handshakeToken); // This is now our safe base64 string
-
-        if (!base64Handshake) {
+        const rawBytes = toBase64(handshakeToken);
+        
+        if (!rawBytes) {
           throw new Error("Handshake string transformation failed.");
         }
+        
+        let binStr = "";
+        for (let i = 0; i < rawBytes.length; i++) {
+          binStr += String.fromCharCode(rawBytes[i]);
+        }
+        const safeBase64String = btoa(binStr);
         
         await Ble.write({
           deviceId: lastMacAddress,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: base64Handshake
+          value: safeBase64String
         });
 
         capacitorDeviceId = lastMacAddress;
@@ -486,20 +469,26 @@
         await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
         await new Promise(r => setTimeout(r, 1500));
         
-        connectionState.textContent = "AUTHENTICATING...";
+       connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
-        const base64Handshake = toBase64(handshakeToken);
+        const rawBytes = toBase64(handshakeToken); // Gets integer array [65, 85, 84...]
         
-        if (!base64Handshake) {
+        if (!rawBytes) {
           throw new Error("Handshake string transformation failed.");
         }
         
-        // And change the Ble.write blocks to explicitly map the values:
+        // Convert the safe integer array into an Android-compliant safe base64 text stream
+        let binStr = "";
+        for (let i = 0; i < rawBytes.length; i++) {
+          binStr += String.fromCharCode(rawBytes[i]);
+        }
+        const safeBase64String = btoa(binStr);
+        
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: base64Handshake // <-- Just pass the clean string here directly!
+          value: safeBase64String // Clean padded text prevents WebView thread crashes!
         });
 
         capacitorDeviceId = device.deviceId;
@@ -567,21 +556,27 @@
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
-          const byteValue = toBase64(command); // Generates our safe base64 string
-          if (!byteValue) return;
+          const rawBytes = toBase64(command);
+          if (!rawBytes) return;
+
+          let binStr = "";
+          for (let i = 0; i < rawBytes.length; i++) {
+            binStr += String.fromCharCode(rawBytes[i]);
+          }
+          const safeBase64String = btoa(binStr);
 
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: byteValue // <-- Clean string mapping bypasses DataUtils bugs
+            value: safeBase64String
           });
         } catch (err) {
           console.error("Capacitor Write Exception:", err);
           window.showToast("TX ERROR", "Failed to send packet data.");
         }
       } else {
-         
+        // Chrome's Web Bluetooth path remains unchanged and perfectly operational
         if (!rxCharacteristic) return;
         try {
           const encoder = new TextEncoder();
@@ -663,8 +658,8 @@
       if (!customText) customText = ""; 
       
       // Safety defaults applied if variables are empty strings
-      const targetCity = cityName || "Kochi";
-      const targetWeather = weatherDetails || "Sunny 31C";
+      const targetCity = cityName || "City...";
+      const targetWeather = weatherDetails || "Weather...";
       
       const packet = `DASH:${hrs}:${mins}|${targetCity}|${targetWeather}|${customText}`;
       sendCommand(packet);
