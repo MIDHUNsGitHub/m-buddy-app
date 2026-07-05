@@ -340,7 +340,7 @@
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
   
-   // ==========================================
+   
     // STABLE RAW DATA CONVERTER (HEX PACKET ENGINE)
     // ==========================================
     function toHex(str) {
@@ -350,7 +350,7 @@
           let code = str.charCodeAt(i).toString(16);
           hex += (code.length === 1 ? "0" + code : code);
         }
-        return hex; // Returns a clean, readable hex string (e.g., "415554483a")
+        return hex;
       } catch (err) {
         console.error("Hex mapping failed:", err);
         return null;
@@ -398,7 +398,7 @@
         const handshakeToken = `AUTH:${pinCode}`;
         
         // Directly obtain the clean Base64 payload string
-        const safePayload = toBase64(handshakeToken); 
+        const safePayload = toHex(handshakeToken); 
         if (!safePayload) {
           throw new Error("Handshake string transformation failed.");
         }
@@ -559,7 +559,6 @@
       } else {
         if (!rxCharacteristic) return;
         try {
-          // Chrome Web BLE handles text parameters directly
           const encoder = new TextEncoder();
           await rxCharacteristic.writeValue(encoder.encode(command));
         } catch (err) {
