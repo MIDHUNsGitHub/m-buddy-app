@@ -356,6 +356,9 @@
         return null;
       }
     }
+
+    // 🌟 PASTE THIS SAFETY ALIAS LINE DIRECTLY HERE:
+    const toBase64 = toHex;
     
     window.addEventListener('load', async () => {
       const savedID = localStorage.getItem('mochi_device_id');
@@ -466,7 +469,7 @@
         const handshakeToken = `AUTH:${pinCode}`;
         
         // Directly obtain the clean Base64 payload string
-        const safePayload = toBase64(handshakeToken); 
+        const safePayload = toHex(handshakeToken); 
         if (!safePayload) {
           throw new Error("Handshake string transformation failed.");
         }
