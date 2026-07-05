@@ -341,16 +341,14 @@
 
   
     // ==========================================
-    // ==========================================
-    // STABLE RAW DATA CONVERTER
+    // STABLE RAW DATA CONVERTER (UPDATED)
     // ==========================================
     function toBase64(str) {
       try {
-        let arr = [];
-        for (let i = 0; i < str.length; i++) {
-          arr.push(str.charCodeAt(i) & 0xff);
-        }
-        return arr; // Returns a clean numerical array [65, 85, 84, 72...]
+        // Safe, robust cross-platform Base64 conversion for the Capacitor Native Engine
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+          return String.fromCharCode(parseInt(p1, 16));
+        }));
       } catch (err) {
         console.error("Buffer mapping failed:", err);
         return null;
@@ -378,20 +376,6 @@
       startAutomaticSync();
     });
 
-    // Helper to format payload across different plugin implementations
-    function formatBlePayload(rawBytes) {
-      // Step 1: Create a safe binary string representation
-      let binStr = "";
-      for (let i = 0; i < rawBytes.length; i++) {
-        binStr += String.fromCharCode(rawBytes[i]);
-      }
-      const encodedString = btoa(binStr);
-
-      // Step 2: Fall back to native arrays if string properties are unsupported
-      // This protects against strict type verification rules across Android environments
-      return encodedString;
-    }
-
     async function attemptAutoReconnect() {
       if (!isCapacitorActive) return;
       const lastMacAddress = localStorage.getItem('mochi_paired_mac_address');
@@ -410,13 +394,12 @@
         
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
-        const rawBytes = toBase64(handshakeToken); 
         
-        if (!rawBytes) {
+        // Directly obtain the clean Base64 payload string
+        const safePayload = toBase64(handshakeToken); 
+        if (!safePayload) {
           throw new Error("Handshake string transformation failed.");
         }
-        
-        const safePayload = formatBlePayload(rawBytes);
         
         await Ble.write({
           deviceId: lastMacAddress,
@@ -479,13 +462,12 @@
         
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
-        const rawBytes = toBase64(handshakeToken); 
         
-        if (!rawBytes) {
+        // Directly obtain the clean Base64 payload string
+        const safePayload = toBase64(handshakeToken); 
+        if (!safePayload) {
           throw new Error("Handshake string transformation failed.");
         }
-        
-        const safePayload = formatBlePayload(rawBytes);
         
         await Ble.write({
           deviceId: device.deviceId,
@@ -559,16 +541,15 @@
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
-          const rawBytes = toBase64(command);
-          if (!rawBytes) return;
-
-          const safePayload = formatBlePayload(rawBytes);
+          // The native plugin needs a clean Base64 string directly
+          const nativeBase64Payload = toBase64(command);
+          if (!nativeBase64Payload) return;
 
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: safePayload
+            value: nativeBase64Payload
           });
         } catch (err) {
           console.error("Capacitor Write Exception:", err);
