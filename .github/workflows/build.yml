@@ -126,13 +126,12 @@ jobs:
 
       - name: Force Register BluetoothLE Plugin in Android Lifecycle
         run: |
-          mkdir -p android/app/src/main/java/io/capacitor/starter
-          cat << 'EOF' > android/app/src/main/java/io/capacitor/starter/MainActivity.java
-          package io.capacitor.starter;
+          mkdir -p android/app/src/main/java/mochi/buddy/app
+          cat << 'EOF' > android/app/src/main/java/mochi/buddy/app/MainActivity.java
+          package mochi.buddy.app;
 
           import android.os.Bundle;
           import com.getcapacitor.BridgeActivity;
-          import com.getcapacitor.community.database.sqlite.CapacitorSQLite; // Optional reference safety
           
           public class MainActivity extends BridgeActivity {
               @Override
