@@ -324,8 +324,8 @@
     let isCapacitorActive = false;
     let isReconnecting = false;
 
-    let cityName = "Kochi";          // Hardcoded fallback so packet doesn't block
-    let weatherDetails = "Sunny 31C"; // Hardcoded fallback so packet doesn't block
+    let cityName = "Kochi";          
+    let weatherDetails = "Sunny 31C"; 
 
     const connectBtn = document.getElementById('connectBtn');
     const unpairBtn = document.getElementById('unpairBtn');
@@ -339,10 +339,7 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-  
-   
-    // STABLE RAW DATA CONVERTER (HEX PACKET ENGINE)
-    // ==========================================
+    // NATIVE-SAFE ARRAY CONVERTER
     function toHex(str) {
       try {
         let hex = "";
@@ -356,9 +353,6 @@
         return null;
       }
     }
-
-    // 🌟 PASTE THIS SAFETY ALIAS LINE DIRECTLY HERE:
-    const toBase64 = toHex;
     
     window.addEventListener('load', async () => {
       const savedID = localStorage.getItem('mochi_device_id');
@@ -400,10 +394,10 @@
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
         
-        // 🌟 REPLACE IT WITH THIS CORRECT VERSION:
+        // Fix 1: Safe Array buffer transmission for Reconnect
         const uint8Array = new TextEncoder().encode(handshakeToken);
         const dataView = new DataView(uint8Array.buffer);
-
+        
         await Ble.write({
           deviceId: lastMacAddress,
           service: SERVICE_UUID,
@@ -463,14 +457,13 @@
         await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
         await new Promise(r => setTimeout(r, 1500));
         
-        // 🌟 REPLACE IT WITH THIS SAFE PACKET TRANSMITTER:
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
-
-        // Convert the verification string straight to a native DataView
+        
+        // Fix 2: Safe Array buffer transmission for Manual Connection
         const uint8Array = new TextEncoder().encode(handshakeToken);
         const dataView = new DataView(uint8Array.buffer);
-
+        
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
@@ -539,12 +532,11 @@
       setTimeout(() => { window.sendSyncPacket(); }, 1500);
     }
 
-    // 🌟 REPLACE IT WITH THIS CORRECT PLUG-IN BUFFER CODE:
     async function sendCommand(command) {
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
-          // Encode text characters cleanly into an integer array
+          // Fix 3: Direct numerical array encapsulation for Live Telemetry Strings
           const uint8Array = new TextEncoder().encode(command);
           const dataView = new DataView(uint8Array.buffer);
 
@@ -552,7 +544,7 @@
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: dataView // <-- Capacitor handles DataView natively without string splitting!
+            value: dataView
           });
         } catch (err) {
           console.error("Capacitor Write Exception:", err);
@@ -616,7 +608,6 @@
             window.sendSyncPacket();
           },
           (error) => {
-            // Leave fallbacks intact if GPS is disabled
             document.getElementById('appCity').textContent = cityName;
             document.getElementById('appWeather').textContent = weatherDetails;
             window.sendSyncPacket();
@@ -639,7 +630,6 @@
       let customText = customOledTextInput.value.trim();
       if (!customText) customText = ""; 
       
-      // Safety defaults applied if variables are empty strings
       const targetCity = cityName || "City...";
       const targetWeather = weatherDetails || "Weather...";
       
