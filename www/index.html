@@ -342,14 +342,27 @@
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
+          // 🌟 FIX: Convert text string directly into normal text number codes (UTF-8 Array)
+          const textBytes = Array.from(command).map(ch => ch.charCodeAt(0));
+          const uint8 = new Uint8Array(textBytes);
+          
+          // Convert the raw bytes into a standard format Capacitor transmits natively
+          const rawValue = btoa(String.fromCharCode.apply(null, uint8));
+
           await window.Capacitor.Plugins.BluetoothLe.write({
-            deviceId: capacitorDeviceId, service: SERVICE_UUID, characteristic: CHARACTERISTIC_UUID,
-            value: stringToBase64(command)
+            deviceId: capacitorDeviceId,
+            service: SERVICE_UUID,
+            characteristic: CHARACTERISTIC_UUID,
+            value: rawValue
           });
-        } catch (err) {}
+        } catch (err) {
+          console.error("Capacitor TX Error:", err);
+        }
       } else {
         if (!rxCharacteristic) return;
-        try { await rxCharacteristic.writeValue((new TextEncoder()).encode(command)); } catch (err) {}
+        try { 
+          await rxCharacteristic.writeValue((new TextEncoder()).encode(command)); 
+        } catch (err) {}
       }
     }
 
