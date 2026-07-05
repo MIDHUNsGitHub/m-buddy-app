@@ -339,18 +339,19 @@
     const customOledTextInput = document.getElementById('customOledText');
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
-    // NATIVE-SAFE ARRAY CONVERTER
-    function toHex(str) {
+    // 🌟 FIXED CAPACITOR STABLE BASE64 CONVERTER ENGINE
+    function stringToBase64(str) {
       try {
-        let hex = "";
-        for (let i = 0; i < str.length; i++) {
-          let code = str.charCodeAt(i).toString(16);
-          hex += (code.length === 1 ? "0" + code : code);
+        const encoder = new TextEncoder();
+        const uint8 = encoder.encode(str);
+        let binString = "";
+        for (let i = 0; i < uint8.length; i++) {
+          binString += String.fromCharCode(uint8[i]);
         }
-        return hex;
+        return btoa(binString);
       } catch (err) {
-        console.error("Hex mapping failed:", err);
-        return null;
+        console.error("Base64 translation exception:", err);
+        return "";
       }
     }
     
@@ -394,15 +395,14 @@
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
         
-        // Fix 1: Safe Array buffer transmission for Reconnect
-        const uint8Array = new TextEncoder().encode(handshakeToken);
-        const dataView = new DataView(uint8Array.buffer);
+        // 🌟 Fix 1: Delivers clean base64 payload to eliminate "value required" error
+        const safePayload = stringToBase64(handshakeToken);
         
         await Ble.write({
           deviceId: lastMacAddress,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: dataView
+          value: safePayload
         });
 
         capacitorDeviceId = lastMacAddress;
@@ -460,15 +460,14 @@
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
         
-        // Fix 2: Safe Array buffer transmission for Manual Connection
-        const uint8Array = new TextEncoder().encode(handshakeToken);
-        const dataView = new DataView(uint8Array.buffer);
+        // 🌟 Fix 2: Passes a fully non-empty string payload to the write parameter
+        const safePayload = stringToBase64(handshakeToken);
         
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: dataView
+          value: safePayload
         });
 
         capacitorDeviceId = device.deviceId;
@@ -536,15 +535,14 @@
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
-          // Fix 3: Direct numerical array encapsulation for Live Telemetry Strings
-          const uint8Array = new TextEncoder().encode(command);
-          const dataView = new DataView(uint8Array.buffer);
+          // 🌟 Fix 3: Translates real-time telemetry strings into valid Base64 packets
+          const safePayload = stringToBase64(command);
 
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: dataView
+            value: safePayload
           });
         } catch (err) {
           console.error("Capacitor Write Exception:", err);
