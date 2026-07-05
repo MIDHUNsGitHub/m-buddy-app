@@ -340,17 +340,19 @@
     const runtimeEngineText = document.getElementById('runtimeEngine');
 
   
+   // ==========================================
+    // STABLE RAW DATA CONVERTER (HEX PACKET ENGINE)
     // ==========================================
-    // STABLE RAW DATA CONVERTER (UPDATED)
-    // ==========================================
-    function toBase64(str) {
+    function toHex(str) {
       try {
-        // Safe, robust cross-platform Base64 conversion for the Capacitor Native Engine
-        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-          return String.fromCharCode(parseInt(p1, 16));
-        }));
+        let hex = "";
+        for (let i = 0; i < str.length; i++) {
+          let code = str.charCodeAt(i).toString(16);
+          hex += (code.length === 1 ? "0" + code : code);
+        }
+        return hex; // Returns a clean, readable hex string (e.g., "415554483a")
       } catch (err) {
-        console.error("Buffer mapping failed:", err);
+        console.error("Hex mapping failed:", err);
         return null;
       }
     }
@@ -541,15 +543,14 @@
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
-          // The native plugin needs a clean Base64 string directly
-          const nativeBase64Payload = toBase64(command);
-          if (!nativeBase64Payload) return;
+          const safeHexPayload = toHex(command);
+          if (!safeHexPayload) return;
 
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: nativeBase64Payload
+            value: safeHexPayload
           });
         } catch (err) {
           console.error("Capacitor Write Exception:", err);
@@ -558,6 +559,7 @@
       } else {
         if (!rxCharacteristic) return;
         try {
+          // Chrome Web BLE handles text parameters directly
           const encoder = new TextEncoder();
           await rxCharacteristic.writeValue(encoder.encode(command));
         } catch (err) {
