@@ -1,683 +1,164 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>M-Buddy Companion Control</title>
-  
-  <script src="capacitor.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=400;600;800&family=Space+Grotesk:wght=500;700&display=swap" rel="stylesheet">
-  
-  <style>
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #EAECF0;
-      color: #000000;
-    }
-    .retro-heading {
-      font-family: 'Space Grotesk', sans-serif;
-      color: #233D4D;
-    }
-    .retro-panel {
-      background-color: #FFFFFF;
-      border: 2px solid #000000;
-      box-shadow: 4px 4px 0px #000000;
-    }
-    .retro-btn-orange {
-      background-color: #FE7F2D;
-      color: #FFFFFF;
-      border: 2px solid #000000;
-      box-shadow: 3px 3px 0px #000000;
-    }
-    .retro-btn-orange:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0px #000000;
-    }
-    .retro-input {
-      background-color: #F8F9FA;
-      border: 2px solid #000000;
-      color: #000000;
-    }
-    .retro-input:focus {
-      outline: none;
-      border-color: #FE7F2D;
-    }
-    ::-webkit-scrollbar {
-      display: none;
-    }
-  </style>
-</head>
-<body class="min-h-screen p-5 flex flex-col justify-between relative select-none">
+name: Build Android APK
 
-  <div id="toastContainer" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none transition-all duration-300 transform -translate-y-10 opacity-0">
-    <div class="bg-white border-2 border-black p-4 shadow-[4px_4px_0px_#000000] flex items-center gap-3">
-      <div id="toastIcon" class="w-6 h-6 flex items-center justify-center font-bold text-sm border border-black">!</div>
-      <div>
-        <p id="toastTitle" class="font-bold text-xs tracking-wider uppercase retro-heading">SYSTEM</p>
-        <p id="toastMessage" class="text-xs text-gray-700 mt-0.5">Details.</p>
-      </div>
-    </div>
-  </div>
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
-  <header class="text-left max-w-md mx-auto w-full pt-4 border-b-2 border-black pb-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <img src="asset/logo.png" alt="M-Buddy Logo" class="h-9 w-auto object-contain border-2 border-black bg-white p-1" onerror="this.style.display='none'; document.getElementById('fallbackHeading').classList.remove('hidden');">
-      <h1 id="fallbackHeading" class="retro-heading text-3xl font-black tracking-tight hidden">M-BUDDY</h1>
-    </div>
-    <p class="text-xs text-gray-600 font-semibold tracking-wide uppercase mt-1">Companion Control Terminal</p>
-  </header>
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-  <main class="max-w-md mx-auto w-full flex-grow flex flex-col justify-center gap-6 py-6">
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
 
-    <div class="retro-panel rounded-xl p-6">
-      <div class="flex items-start justify-between border-b-2 border-dashed border-gray-300 pb-4">
-        <div>
-          <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Hardware State</span>
-          <h2 id="connectionState" class="text-2xl font-black tracking-tight retro-heading mt-0.5">DISCONNECTED</h2>
-          <span id="runtimeEngine" class="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1">Initializing Engine...</span>
-        </div>
-        <div class="flex items-center gap-1.5 border-2 border-black px-2 py-1 bg-gray-50">
-          <div id="pingDot" class="w-3 h-3 bg-red-500 rounded-full border border-black"></div>
-          <span id="pingLabel" class="text-[10px] font-bold tracking-wider uppercase text-gray-700">OFFLINE</span>
-        </div>
-      </div>
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
 
-      <div class="mt-4 space-y-3">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-[11px] text-black font-bold uppercase tracking-wider block mb-1">Robot Suffix</label>
-            <input type="text" id="mochiID" maxlength="4" placeholder="Any" class="retro-input w-full rounded-lg px-3 py-2 text-center text-sm font-bold uppercase tracking-widest">
-          </div>
-          <div>
-            <label class="text-[11px] text-black font-bold uppercase tracking-wider block mb-1">Passkey PIN</label>
-            <input type="password" id="mochiPIN" maxlength="4" placeholder="1234" class="retro-input w-full rounded-lg px-3 py-2 text-center text-sm font-bold tracking-widest">
-          </div>
-        </div>
-        <div class="flex items-center gap-2 pt-1">
-          <input type="checkbox" id="saveCredentials" checked class="accent-black w-4 h-4 border-2 border-black rounded">
-          <span class="text-xs text-gray-600 font-semibold tracking-wide">Remember configurations</span>
-        </div>
-      </div>
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
-      <div class="grid grid-cols-1 gap-3 mt-6">
-        <button id="connectBtn" class="retro-btn-orange w-full py-3.5 rounded-xl font-bold tracking-wider uppercase text-sm transition-all">
-          Search & Connect
-        </button>
-        <button id="unpairBtn" class="hidden w-full py-2 bg-gray-100 hover:bg-gray-200 text-red-600 font-bold tracking-wider uppercase text-xs border-2 border-black rounded-xl transition-all">
-          Forget Pair Memory
-        </button>
-      </div>
-    </div>
+      # Forces the app bundle to explicitly package the bluetooth plugin
+      - name: Install Project Dependencies
+        run: |
+          npm install
+          npm install @capacitor/android@6.0.0 @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor-community/bluetooth-le@6.0.0
 
-    <div class="grid grid-cols-2 gap-4">
-      <div class="retro-panel rounded-xl p-4 flex flex-col justify-between">
-        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Telemetry Environment</span>
-        <div class="my-3">
-          <span id="appWeather" class="text-xl font-black retro-heading tracking-tight">WAITING...</span>
-          <span class="text-[10px] text-gray-500 block font-semibold mt-0.5">METRIC SYNC</span>
-        </div>
-      </div>
+      - name: Recreate Clean Native Architecture
+        run: |
+          rm -rf android
+          npx cap add android
 
-      <div class="retro-panel rounded-xl p-4 flex flex-col justify-between">
-        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">System Chrono</span>
-        <div class="my-3">
-          <span id="appTime" class="text-2xl font-black retro-heading tracking-tight">--:--</span>
-          <span class="text-[10px] text-gray-500 block font-semibold mt-0.5">LOCAL HOST TIME</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="retro-panel rounded-xl p-6 space-y-4">
-      <span class="text-xs text-black font-bold uppercase tracking-widest block retro-heading">OLED Custom Message Queue</span>
-      <div class="space-y-4">
-        <div class="flex gap-2">
-          <div class="flex-grow">
-            <input type="text" id="customOledText" maxlength="15" placeholder="Type message..." class="retro-input w-full rounded-lg px-3 py-2 text-sm font-medium tracking-wide">
-          </div>
-          <button id="saveTextBtn" class="retro-btn-orange px-4 py-2 rounded-lg font-bold tracking-wider uppercase text-xs transition-all flex items-center justify-center h-[38px]">
-            Save
-          </button>
-        </div>
-
-        <div class="pt-3 border-t border-gray-200">
-          <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Saved Registers</span>
-          <div id="savedTextsList" class="space-y-2 max-h-36 overflow-y-auto pr-1">
-            <div class="text-xs text-gray-400 italic py-1">Initializing registries...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="retro-panel rounded-xl p-6">
-      <div class="flex items-center justify-between mb-3">
-        <span class="text-xs text-black font-bold uppercase tracking-widest block retro-heading">Location Coordinate Stream</span>
-        <button id="gpsBtn" class="text-[10px] font-bold uppercase border-2 border-black bg-gray-50 px-3 py-1 rounded-md tracking-wider">
-          Sync Stream
-        </button>
-      </div>
-      <div class="flex justify-between items-center bg-gray-50 border-2 border-black p-3 rounded-lg">
-        <span class="text-xs font-bold text-gray-600 uppercase">Target Node:</span>
-        <span id="appCity" class="font-black text-sm text-black retro-heading">SEARCHING...</span>
-      </div>
-    </div>
-
-  </main>
-
-  <footer class="text-center py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-    M-Buddy Hardware Project &copy; 2026
-  </footer>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    const fallbackConfig = {
-      apiKey: "AIzaSyDummyKeyForDevelopmentPurposesOnly",
-      authDomain: "mochi-buddy-development.firebaseapp.com",
-      projectId: "mochi-buddy-development",
-      storageBucket: "mochi-buddy-development.appspot.com",
-      messagingSenderId: "1234567890",
-      appId: "1:1234567890:web:abcdef"
-    };
-
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    let db = null;
-    try { db = getFirestore(app); } catch(e){}
-    const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
-
-    let currentUser = null;
-    let savedTextsUnsubscribe = null;
-
-    window.renderLocalSavedTexts = function() {
-      const listContainer = document.getElementById('savedTextsList');
-      const cached = localStorage.getItem('mochi_text_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        parsed.sort((a, b) => b.createdAt - a.createdAt);
-        
-        if (parsed.length > 0) {
-          listContainer.innerHTML = '';
-          parsed.forEach((item) => {
-            const itemEl = document.createElement('div');
-            itemEl.className = "flex items-center justify-between bg-gray-50 border-2 border-black rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-100 transition-all";
-            itemEl.innerHTML = `
-              <span class="text-xs font-bold truncate flex-grow mr-2 text-black tracking-wide">${item.text}</span>
-              <button class="local-delete-btn text-gray-400 hover:text-red-600 p-1 font-bold text-sm" data-id="${item.id}">&times;</button>
-            `;
-            
-            itemEl.addEventListener('click', (e) => {
-              if (e.target.classList.contains('local-delete-btn')) return;
-              document.getElementById('customOledText').value = item.text;
-              window.showToast("STAGED", "Loaded to transmission buffer.");
-              if (window.sendSyncPacket) window.sendSyncPacket();
-            });
-
-            itemEl.querySelector('.local-delete-btn').addEventListener('click', (e) => {
-              e.stopPropagation();
-              deleteLocalAndRemoteMessage(e.currentTarget.getAttribute('data-id'));
-            });
-
-            listContainer.appendChild(itemEl);
-          });
-          return;
-        }
-      }
-      listContainer.innerHTML = `<div class="text-xs text-gray-400 italic py-1">No saved records.</div>`;
-    }
-
-    async function deleteLocalAndRemoteMessage(msgId) {
-      let cached = localStorage.getItem('mochi_text_cache') ? JSON.parse(localStorage.getItem('mochi_text_cache')) : [];
-      cached = cached.filter(item => item.id !== msgId);
-      localStorage.setItem('mochi_text_cache', JSON.stringify(cached));
-      window.renderLocalSavedTexts();
-
-      if (currentUser && !msgId.startsWith('temp_') && db) {
-        try {
-          const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts', msgId);
-          await deleteDoc(docRef);
-        } catch (err) {}
-      }
-      window.showToast("REMOVED", "Message index cleared.");
-    }
-
-    window.renderLocalSavedTexts();
-
-    const initAuthAndObserver = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-        onAuthStateChanged(auth, (user) => {
-          currentUser = user;
-          if (user && db) setupSavedTextsListener(user.uid);
-        });
-      } catch (e) {}
-    };
-
-    initAuthAndObserver();
-
-    function setupSavedTextsListener(userId) {
-      if (!userId || !db) return;
-      if (savedTextsUnsubscribe) savedTextsUnsubscribe();
-
-      try {
-        const collectionRef = collection(db, 'artifacts', appId, 'users', userId, 'saved_texts');
-        const sortedQuery = query(collectionRef, orderBy('createdAt', 'desc'));
-        
-        savedTextsUnsubscribe = onSnapshot(sortedQuery, (snapshot) => {
-          const localItems = [];
-          if (snapshot.empty) {
-            window.renderLocalSavedTexts();
-            return;
+      - name: Inject Baseline Android Build Values
+        run: |
+          mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/xml
+          
+          cat << 'EOF' > android/variables.gradle
+          ext {
+              minSdkVersion = 22
+              compileSdkVersion = 34
+              targetSdkVersion = 34
+              androidxActivityVersion = '1.9.0'
+              androidxAppCompatVersion = '1.7.0'
+              androidxCoordinatorLayoutVersion = '1.2.0'
+              androidxCoreVersion = '1.13.1'
+              androidxFragmentVersion = '1.7.1'
+              coreSplashScreenVersion = '1.0.1'
+              junitVersion = '4.13.2'
+              androidxJunitVersion = '1.1.5'
+              androidxEspressoCoreVersion = '3.5.1'
+              cordovaAndroidVersion = '10.1.1'
           }
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            localItems.push({ id: docSnap.id, text: data.text, createdAt: data.createdAt || Date.now() });
-          });
-          localStorage.setItem('mochi_text_cache', JSON.stringify(localItems));
-          window.renderLocalSavedTexts();
-        }, () => {
-          window.renderLocalSavedTexts();
-        });
-      } catch(e) { window.renderLocalSavedTexts(); }
-    }
+          EOF
 
-    document.getElementById('saveTextBtn').addEventListener('click', async () => {
-      const inputField = document.getElementById('customOledText');
-      const textToSave = inputField.value.trim();
-      if (!textToSave) return;
-      
-      const entryTimestamp = Date.now();
-      const uniqueTempId = 'temp_' + entryTimestamp;
+         
+          cat << 'EOF' > android/app/src/main/res/values/strings.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">M-Buddy</string>
+              <string name="title_activity_main">M-Buddy</string>
+              <string name="custom_url_scheme">mochi.buddy.app</string>
+          </resources>
+          EOF
 
-      const cached = localStorage.getItem('mochi_text_cache') ? JSON.parse(localStorage.getItem('mochi_text_cache')) : [];
-      cached.push({ id: uniqueTempId, text: textToSave, createdAt: entryTimestamp });
-      localStorage.setItem('mochi_text_cache', JSON.stringify(cached));
-      window.renderLocalSavedTexts();
+          cat << 'EOF' > android/app/src/main/res/xml/file_paths.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <external-path name="external_files" path="."/>
+          </paths>
+          EOF
 
-      if (window.sendSyncPacket) window.sendSyncPacket();
+      # SYSTEM-LEVEL SECURITY FIX: Declares the BLE hardware requirement and allows network bypass flags
+      - name: Inject Secure Android Hardware Permissions Natively
+        run: |
+          cat << 'EOF' > android/app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              
+              <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+              
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+              <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+              
+              <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
+              <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
-      if (!currentUser || !db) return;
-      try {
-        const collectionRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'saved_texts');
-        await addDoc(collectionRef, { text: textToSave, createdAt: entryTimestamp });
-        window.showToast("REGISTERED", "Saved to Cloud!");
-      } catch (err) {}
-    });
-  </script>
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="@string/app_name"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:supportsRtl="true"
+                  android:theme="@style/AppTheme"
+                  android:usesCleartextTraffic="true">
 
-  <script>
-    const SERVICE_UUID        = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
-    const CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
+                  <activity
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+                      android:name="mochi.buddy.app.MainActivity"
+                      android:label="@string/title_activity_main"
+                      android:theme="@style/AppTheme.NoActionBarLaunch"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+                  <provider
+                      android:name="androidx.core.content.FileProvider"
+                      android:authorities="${applicationId}.fileprovider"
+                      android:exported="false"
+                      android:grantUriPermissions="true">
+                      <meta-data
+                          android:name="android.support.FILE_PROVIDER_PATHS"
+                          android:resource="@xml/file_paths"></meta-data>
+                  </provider>
+              </application>
+          </manifest>
+          EOF
 
-    let bluetoothDevice = null;       
-    let rxCharacteristic = null;      
-    let capacitorDeviceId = null;     
-    
-    let gpsInterval = null;
-    let isCapacitorActive = false;
-    let isReconnecting = false;
+      - name: Force Register BluetoothLE Plugin in Android Lifecycle
+        run: |
+          mkdir -p android/app/src/main/java/mochi/buddy/app
+          cat << 'EOF' > android/app/src/main/java/mochi/buddy/app/MainActivity.java
+          package mochi.buddy.app;
 
-    let cityName = "Kochi";          // Hardcoded fallback so packet doesn't block
-    let weatherDetails = "Sunny 31C"; // Hardcoded fallback so packet doesn't block
+          import com.getcapacitor.BridgeActivity;
 
-    const connectBtn = document.getElementById('connectBtn');
-    const unpairBtn = document.getElementById('unpairBtn');
-    const connectionState = document.getElementById('connectionState');
-    const pingDot = document.getElementById('pingDot');
-    const pingLabel = document.getElementById('pingLabel');
-    const gpsBtn = document.getElementById('gpsBtn');
-    const inputMochiID = document.getElementById('mochiID');
-    const inputMochiPIN = document.getElementById('mochiPIN');
-    const saveCheck = document.getElementById('saveCredentials');
-    const customOledTextInput = document.getElementById('customOledText');
-    const runtimeEngineText = document.getElementById('runtimeEngine');
+          public class MainActivity extends BridgeActivity {}
+          EOF
+          
+      - name: Auto-Compile Custom Branding Launcher Icons
+        run: |
+          npm install @capacitor/assets --save-dev
+          if [ -d "assets" ] && [ -f "assets/logo.png" ]; then
+            npx capacitor-assets generate --android --iconBackgroundColor '#1b0a2a'
+          else
+            echo "Branding graphics skipped."
+          fi
 
-  
-   // ==========================================
-    // STABLE RAW DATA CONVERTER (HEX PACKET ENGINE)
-    // ==========================================
-    function toHex(str) {
-      try {
-        let hex = "";
-        for (let i = 0; i < str.length; i++) {
-          let code = str.charCodeAt(i).toString(16);
-          hex += (code.length === 1 ? "0" + code : code);
-        }
-        return hex; // Returns a clean, readable hex string (e.g., "415554483a")
-      } catch (err) {
-        console.error("Hex mapping failed:", err);
-        return null;
-      }
-    }
-    
-    window.addEventListener('load', async () => {
-      const savedID = localStorage.getItem('mochi_device_id');
-      const savedPIN = localStorage.getItem('mochi_device_pin');
-      if (savedID) inputMochiID.value = savedID;
-      if (savedPIN) inputMochiPIN.value = savedPIN;
+      # Forcing sync ensures the web dependencies map their bridging hooks cleanly to Java source structures
+      - name: Sync Production Assets & Plugins
+        run: |
+          npx cap update android
+          npx cap sync android
 
-      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe) {
-        isCapacitorActive = true;
-        runtimeEngineText.textContent = "Capacitor Native Engine Active";
-        try {
-          await window.Capacitor.Plugins.BluetoothLe.initialize();
-          setTimeout(() => { attemptAutoReconnect(); }, 800);
-        } catch(e){}
-      } else {
-        isCapacitorActive = false;
-        runtimeEngineText.textContent = "Standard Web Bluetooth Active";
-      }
-      
-      startAutomaticSync();
-    });
+      - name: Build Standalone APK via Gradle
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-    async function attemptAutoReconnect() {
-      if (!isCapacitorActive) return;
-      const lastMacAddress = localStorage.getItem('mochi_paired_mac_address');
-      const lastStoredName = localStorage.getItem('mochi_paired_name') || "M-Buddy Hardware";
-      if (!lastMacAddress || isReconnecting) return;
-
-      isReconnecting = true;
-      const Ble = window.Capacitor.Plugins.BluetoothLe;
-      const pinCode = inputMochiPIN.value.trim() || "1234";
-
-      try {
-        connectionState.textContent = "RECONNECTING...";
-        
-        await Ble.connect({ deviceId: lastMacAddress, timeout: 6000 });
-        await new Promise(r => setTimeout(r, 1200));
-        
-        connectionState.textContent = "AUTHENTICATING...";
-        const handshakeToken = `AUTH:${pinCode}`;
-        
-        // Directly obtain the clean Base64 payload string
-        const safePayload = toBase64(handshakeToken); 
-        if (!safePayload) {
-          throw new Error("Handshake string transformation failed.");
-        }
-        
-        await Ble.write({
-          deviceId: lastMacAddress,
-          service: SERVICE_UUID,
-          characteristic: CHARACTERISTIC_UUID,
-          value: safePayload
-        });
-
-        capacitorDeviceId = lastMacAddress;
-        finalizeConnectionUI(lastStoredName);
-        window.showToast("RECONNECTED", "Hardware communication links online.");
-      } catch (err) {
-        console.error("Auto link target offline:", err);
-        onDisconnected();
-      } finally {
-        isReconnecting = false;
-      }
-    }
-
-    connectBtn.addEventListener('click', async () => {
-      if (bluetoothDevice || capacitorDeviceId || rxCharacteristic) {
-        onDisconnected();
-      } else {
-        if (isCapacitorActive) {
-          handleCapacitorConnect();
-        } else {
-          handleWebConnect();
-        }
-      }
-    });
-
-    async function handleCapacitorConnect() {
-      const Ble = window.Capacitor.Plugins.BluetoothLe;
-      const rawSuffix = inputMochiID.value.trim().toUpperCase();
-      const pinCode = inputMochiPIN.value.trim() || "1234";
-
-      if (saveCheck.checked) {
-        localStorage.setItem('mochi_device_id', rawSuffix);
-        localStorage.setItem('mochi_device_pin', pinCode);
-      }
-
-      try {
-        connectionState.textContent = "PERMISSIONS...";
-        try { await Ble.requestPermissions(); } catch (e) {}
-        
-        connectionState.textContent = "SCANNING...";
-        let requestOptions = { services: [SERVICE_UUID], scanMode: 2 };
-
-        const device = await Ble.requestDevice(requestOptions);
-        if (!device || !device.deviceId) {
-          onDisconnected();
-          return;
-        }
-
-        let targetDeviceName = device.name ? device.name : `M-Buddy_${rawSuffix || 'Device'}`;
-        
-        connectionState.textContent = "BONDING...";
-        await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
-        await new Promise(r => setTimeout(r, 1500));
-        
-        connectionState.textContent = "AUTHENTICATING...";
-        const handshakeToken = `AUTH:${pinCode}`;
-        
-        // Directly obtain the clean Base64 payload string
-        const safePayload = toBase64(handshakeToken); 
-        if (!safePayload) {
-          throw new Error("Handshake string transformation failed.");
-        }
-        
-        await Ble.write({
-          deviceId: device.deviceId,
-          service: SERVICE_UUID,
-          characteristic: CHARACTERISTIC_UUID,
-          value: safePayload
-        });
-
-        capacitorDeviceId = device.deviceId;
-        localStorage.setItem('mochi_paired_mac_address', device.deviceId);
-        localStorage.setItem('mochi_paired_name', targetDeviceName);
-        finalizeConnectionUI(targetDeviceName);
-      } catch (err) {
-        window.showToast("CONNECTION ERROR", err.message || "Handshake failed.");
-        onDisconnected();
-      }
-    }
-
-    async function handleWebConnect() {
-      const rawSuffix = inputMochiID.value.trim().toUpperCase();
-      const pinCode = inputMochiPIN.value.trim() || "1234";
-
-      if (saveCheck.checked) {
-        localStorage.setItem('mochi_device_id', rawSuffix);
-        localStorage.setItem('mochi_device_pin', pinCode);
-      }
-
-      try {
-        connectionState.textContent = "DISCOVERING...";
-        let searchFilter = { optionalServices: [SERVICE_UUID] };
-        if (rawSuffix) {
-          searchFilter.filters = [{ name: `M-Buddy_${rawSuffix}` }];
-        } else {
-          searchFilter.filters = [{ namePrefix: 'M-Buddy' }];
-        }
-
-        bluetoothDevice = await navigator.bluetooth.requestDevice(searchFilter);
-        bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
-        
-        connectionState.textContent = "CONNECTING...";
-        const server = await bluetoothDevice.gatt.connect();
-        
-        connectionState.textContent = "RESOLVING...";
-        const service = await server.getPrimaryService(SERVICE_UUID);
-        rxCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-
-        connectionState.textContent = "AUTHENTICATING...";
-        const handshakeToken = `AUTH:${pinCode}`;
-        const encoder = new TextEncoder();
-        await rxCharacteristic.writeValue(encoder.encode(handshakeToken));
-        
-        finalizeConnectionUI(bluetoothDevice.name || "M-BUDDY");
-      } catch (err) {
-        window.showToast("CONNECTION ERROR", err.message || "Web Bluetooth aborted.");
-        onDisconnected();
-      }
-    }
-
-    function finalizeConnectionUI(displayName) {
-      connectionState.textContent = displayName.toUpperCase();
-      pingDot.className = "w-3 h-3 bg-green-500 rounded-full border border-black";
-      pingLabel.textContent = "ONLINE";
-      pingLabel.className = "text-[10px] font-bold tracking-wider uppercase text-green-700";
-      connectBtn.textContent = "Disconnect Robot";
-      unpairBtn.classList.remove('hidden');
-      
-      setTimeout(() => { window.sendSyncPacket(); }, 1500);
-    }
-
-    async function sendCommand(command) {
-      if (isCapacitorActive) {
-        if (!capacitorDeviceId) return;
-        try {
-          const safeHexPayload = toHex(command);
-          if (!safeHexPayload) return;
-
-          await window.Capacitor.Plugins.BluetoothLe.write({
-            deviceId: capacitorDeviceId,
-            service: SERVICE_UUID,
-            characteristic: CHARACTERISTIC_UUID,
-            value: safeHexPayload
-          });
-        } catch (err) {
-          console.error("Capacitor Write Exception:", err);
-          window.showToast("TX ERROR", "Failed to send packet data.");
-        }
-      } else {
-        if (!rxCharacteristic) return;
-        try {
-          // Chrome Web BLE handles text parameters directly
-          const encoder = new TextEncoder();
-          await rxCharacteristic.writeValue(encoder.encode(command));
-        } catch (err) {
-          console.error("Web Bluetooth Write Exception:", err);
-        }
-      }
-    }
-
-    customOledTextInput.addEventListener('input', () => {
-      if (capacitorDeviceId || rxCharacteristic) { window.sendSyncPacket(); }
-    });
-
-    unpairBtn.addEventListener('click', () => {
-      localStorage.removeItem('mochi_device_id');
-      localStorage.removeItem('mochi_device_pin');
-      localStorage.removeItem('mochi_paired_mac_address');
-      localStorage.removeItem('mochi_paired_name');
-      onDisconnected();
-      window.showToast("UNPAIRED", "Pair memory cleared.");
-    });
-
-    function startAutomaticSync() {
-      if (gpsInterval) clearInterval(gpsInterval);
-      
-      const refreshMetrics = () => {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            
-            try {
-              const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, {
-                headers: { 'User-Agent': 'MBuddyTerminal/1.0' }
-              });
-              const data = await response.json();
-              if (data && data.address) {
-                cityName = data.address.city || data.address.town || data.address.suburb || data.address.state || "Kochi";
-              }
-            } catch (err) { }
-
-            if (cityName.length > 10) cityName = cityName.substring(0, 10);
-            document.getElementById('appCity').textContent = cityName;
-
-            try {
-              const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-              const weatherData = await weatherResponse.json();
-              if (weatherData && weatherData.current_weather) {
-                weatherDetails = `Sunny ${Math.round(weatherData.current_weather.temperature)}C`;
-                document.getElementById('appWeather').textContent = weatherDetails;
-              }
-            } catch (err) { }
-
-            window.sendSyncPacket();
-          },
-          (error) => {
-            // Leave fallbacks intact if GPS is disabled
-            document.getElementById('appCity').textContent = cityName;
-            document.getElementById('appWeather').textContent = weatherDetails;
-            window.sendSyncPacket();
-          },
-          { enableHighAccuracy: false, timeout: 10000 }
-        );
-      };
-
-      refreshMetrics();
-      gpsInterval = setInterval(refreshMetrics, 8000);
-    }
-
-    window.sendSyncPacket = function() {
-      if (!capacitorDeviceId && !rxCharacteristic) return;
-
-      const now = new Date();
-      const hrs = String(now.getHours()).padStart(2, '0');
-      const mins = String(now.getMinutes()).padStart(2, '0');
-      
-      let customText = customOledTextInput.value.trim();
-      if (!customText) customText = ""; 
-      
-      // Safety defaults applied if variables are empty strings
-      const targetCity = cityName || "City...";
-      const targetWeather = weatherDetails || "Weather...";
-      
-      const packet = `DASH:${hrs}:${mins}|${targetCity}|${targetWeather}|${customText}`;
-      sendCommand(packet);
-    }
-
-    function onDisconnected() {
-      connectionState.textContent = "DISCONNECTED";
-      pingDot.className = "w-3 h-3 bg-red-500 rounded-full border border-black";
-      pingLabel.textContent = "OFFLINE";
-      pingLabel.className = "text-[10px] font-bold tracking-wider uppercase text-gray-700";
-      connectBtn.textContent = "Search & Connect";
-      unpairBtn.classList.add('hidden');
-      
-      if (isCapacitorActive && capacitorDeviceId) {
-        try { window.Capacitor.Plugins.BluetoothLe.disconnect({ deviceId: capacitorDeviceId }); } catch(e){}
-      }
-      bluetoothDevice = null;
-      rxCharacteristic = null;
-      capacitorDeviceId = null;
-    }
-
-    setInterval(() => {
-      const now = new Date();
-      document.getElementById('appTime').textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    }, 1000);
-
-    window.showToast = function(title, message, isError = false) {
-      const container = document.getElementById('toastContainer');
-      document.getElementById('toastTitle').textContent = title;
-      document.getElementById('toastMessage').textContent = message;
-      container.classList.remove('opacity-0', '-translate-y-10');
-      container.classList.add('opacity-100', 'translate-y-0');
-      setTimeout(() => {
-        container.classList.remove('opacity-100', 'translate-y-0');
-        container.classList.add('opacity-0', '-translate-y-10');
-      }, 3500);
-    }
-  </script>
-</body>
-</html>
+      - name: Upload Finished APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: M-Buddy-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
