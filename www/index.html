@@ -400,17 +400,15 @@
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
         
-        // Directly obtain the clean Base64 payload string
-        const safePayload = toHex(handshakeToken); 
-        if (!safePayload) {
-          throw new Error("Handshake string transformation failed.");
-        }
-        
+        // 🌟 REPLACE IT WITH THIS CORRECT VERSION:
+        const uint8Array = new TextEncoder().encode(handshakeToken);
+        const dataView = new DataView(uint8Array.buffer);
+
         await Ble.write({
           deviceId: lastMacAddress,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: safePayload
+          value: dataView
         });
 
         capacitorDeviceId = lastMacAddress;
@@ -465,20 +463,19 @@
         await Ble.connect({ deviceId: device.deviceId, timeout: 15000 });
         await new Promise(r => setTimeout(r, 1500));
         
+        // 🌟 REPLACE IT WITH THIS SAFE PACKET TRANSMITTER:
         connectionState.textContent = "AUTHENTICATING...";
         const handshakeToken = `AUTH:${pinCode}`;
-        
-        // Directly obtain the clean Base64 payload string
-        const safePayload = toHex(handshakeToken); 
-        if (!safePayload) {
-          throw new Error("Handshake string transformation failed.");
-        }
-        
+
+        // Convert the verification string straight to a native DataView
+        const uint8Array = new TextEncoder().encode(handshakeToken);
+        const dataView = new DataView(uint8Array.buffer);
+
         await Ble.write({
           deviceId: device.deviceId,
           service: SERVICE_UUID,
           characteristic: CHARACTERISTIC_UUID,
-          value: safePayload
+          value: dataView
         });
 
         capacitorDeviceId = device.deviceId;
@@ -542,18 +539,20 @@
       setTimeout(() => { window.sendSyncPacket(); }, 1500);
     }
 
+    // 🌟 REPLACE IT WITH THIS CORRECT PLUG-IN BUFFER CODE:
     async function sendCommand(command) {
       if (isCapacitorActive) {
         if (!capacitorDeviceId) return;
         try {
-          const safeHexPayload = toHex(command);
-          if (!safeHexPayload) return;
+          // Encode text characters cleanly into an integer array
+          const uint8Array = new TextEncoder().encode(command);
+          const dataView = new DataView(uint8Array.buffer);
 
           await window.Capacitor.Plugins.BluetoothLe.write({
             deviceId: capacitorDeviceId,
             service: SERVICE_UUID,
             characteristic: CHARACTERISTIC_UUID,
-            value: safeHexPayload
+            value: dataView // <-- Capacitor handles DataView natively without string splitting!
           });
         } catch (err) {
           console.error("Capacitor Write Exception:", err);
